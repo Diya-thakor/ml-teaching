@@ -297,3 +297,6 @@ __pycache__
 
 MLEnv/
 **/*.quarto_ipynb
+
+# MNIST dataset
+**/MNIST/
