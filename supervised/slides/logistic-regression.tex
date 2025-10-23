@@ -612,7 +612,7 @@ The Hessian matrix of f(.) with respect to $\theta$, written $\nabla _{\theta}^{
 \begin{frame}{Newton's Algorithm}
 The most basic second-order optimization algorithm is Newton's algorithm, which consists of updates of the form,
 
-$$\theta_{k+1} = \theta_{k} - \mathbb{H}_{k}^{1}g_{k}$$
+$$\theta_{k+1} = \theta_{k} - \mathbb{H}_{k}^{-1}g_{k}$$
 where $g_{k}$ is the gradient at step $k$. This algorithm is derived by making a second-order Taylor series approximation of $f(\theta)$ around $\theta_{k}$:
 $$f_{quad}(\theta) = f(\theta_{k}) + g_{k}^{T}(\theta - \theta_{k}) + \frac{1}{2}(\theta - \theta_{k})^{T}\mathbb{H}_{k}(\theta - \theta_{k})$$
 differentiating and equating to zero to solve for $\theta_{k+1}$.
