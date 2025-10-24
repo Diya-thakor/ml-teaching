@@ -308,12 +308,12 @@ MLEnv/
 **/cifar-100-python.tar.gz
 **/data/
 **/sample_images/
-**/imagenet_samples/
 
 # PyTorch model checkpoints
 **/*.pth
 **/*.pt
 **/*.pkl
 
-# EXCEPT: Keep README example images
+# EXCEPT: Keep curated ImageNet samples and README examples for gradcam-enhanced app
+!apps/gradcam-enhanced/imagenet_samples/**
 !apps/gradcam-enhanced/readme_examples/**
