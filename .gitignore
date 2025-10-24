@@ -298,5 +298,22 @@ __pycache__
 MLEnv/
 **/*.quarto_ipynb
 
-# MNIST dataset
+# Dataset files
 **/MNIST/
+**/CIFAR-10/
+**/cifar-10-batches-py/
+**/cifar-10-python.tar.gz
+**/CIFAR-100/
+**/cifar-100-python/
+**/cifar-100-python.tar.gz
+**/data/
+**/sample_images/
+**/imagenet_samples/
+
+# PyTorch model checkpoints
+**/*.pth
+**/*.pt
+**/*.pkl
+
+# EXCEPT: Keep README example images
+!apps/gradcam-enhanced/readme_examples/**

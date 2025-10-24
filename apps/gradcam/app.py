@@ -105,8 +105,8 @@ def compute_gradcam_steps(model, img, target_class=None):
     cam = (weights * feature_maps).sum(dim=1, keepdim=True)
     cam = F.relu(cam)
 
-    # Upsample (bicubic gives smoother heatmaps than bilinear)
-    cam_upsampled = F.interpolate(cam, size=(28, 28), mode='bicubic', align_corners=False)
+    # Upsample to input size (bilinear is standard for Grad-CAM)
+    cam_upsampled = F.interpolate(cam, size=(28, 28), mode='bilinear', align_corners=False)
     cam_normalized = cam_upsampled.squeeze().cpu()
     cam_normalized = (cam_normalized - cam_normalized.min()) / (cam_normalized.max() - cam_normalized.min() + 1e-8)
 
