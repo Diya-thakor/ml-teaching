@@ -1,0 +1,652 @@
+\documentclass{beamer}
+\usepackage{../../shared/styles/custom}
+
+\def\checkmark{\tikz\fill[scale=0.4](0,.35) -- (.25,0) -- (1,.7) -- (.25,.15) -- cycle;}
+
+\graphicspath{ {../assets/clustering/figures/} }
+
+\title{Unsupervised Learning (Detailed)}
+\date{\today}
+\author{Nipun Batra}
+\institute{IIT Gandhinagar}
+\begin{document}
+  \maketitle
+
+\begin{frame}{The need for Unsupervised Learning}
+\begin{itemize}
+\item Aids the search of patterns in data.
+\item Find features for categorization.
+\item Easier to collect unlabeled data.
+\end{itemize}
+\pause
+Places where you will see unsupervised learning
+\begin{itemize}
+\item It can be used to segment the market based on customer preferences.
+\item A data science team reduces the number of dimensions in a large dataset to simplify modeling and reduce file size.
+\item Anomaly detection in network traffic or fraud detection
+\item Document clustering and topic modeling
+\item Image segmentation in computer vision
+\item Gene expression analysis in bioinformatics
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Real-World Examples of Unsupervised Learning}
+\begin{itemize}
+\item \textbf{E-commerce}: Grouping customers by purchasing behavior for personalized recommendations
+\item \textbf{Social Networks}: Detecting communities and user groups
+\item \textbf{Healthcare}: Identifying disease subtypes from patient data
+\item \textbf{Astronomy}: Classifying galaxies and celestial objects
+\item \textbf{Climate Science}: Identifying weather patterns and climate zones
+\item \textbf{Manufacturing}: Quality control by detecting anomalous products
+\end{itemize}
+\end{frame}
+
+\section{Clustering}
+
+\begin{frame}{Clustering}
+\textbf{AIM:} To find groups/subgroups in a dataset.
+\pause
+\textbf{REQUIREMENTS:} A predefined notion of similarity/dissimilarity.
+\pause
+\textbf{Examples:} \\
+Market Segmentation: Customers with similar preferences in the same groups. This would aid in targeted marketing.
+\end{frame}
+
+\begin{frame}{Clustering}
+\begin{figure}[htp]
+    \centering
+    \includegraphics[width=0.7\linewidth]{gt_iris.png}
+    \caption{Iris Data Set with ground truth}
+\end{figure}
+\end{frame}
+
+\begin{frame}{Types of Clustering Algorithms}
+\begin{itemize}
+\item \textbf{Partitioning Methods}: K-Means, K-Medoids
+\item \textbf{Hierarchical Methods}: Agglomerative, Divisive
+\item \textbf{Density-Based Methods}: DBSCAN, OPTICS
+\item \textbf{Model-Based Methods}: Gaussian Mixture Models
+\item \textbf{Grid-Based Methods}: STING, CLIQUE
+\end{itemize}
+\end{frame}
+
+\section{K-Means Clustering}
+
+\begin{frame}{K-Means Clustering}
+\begin{columns}[T]
+  \begin{column}{0.5\textwidth}
+  \begin{itemize}
+\item $N$ points in a $R^d$ space.
+\item $C_i$: set of points in the $i^{th}$ cluster.
+\item $C_1 \cup C_2 \cup \ldots C_k = \{1, \ldots , n\}$
+\item $C_i \cap C_j = \{\phi \}$ for $i\neq j$
+\end{itemize}
+  \end{column}
+  \begin{column}{0.5\textwidth}
+\begin{figure}[htp]
+    \centering
+    \includegraphics[width=\linewidth]{k_1.png}
+    \caption{Dataset with 5 clusters}
+\end{figure}
+  \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{K-Means Clustering}
+\begin{columns}[T]
+  \begin{column}{0.5\textwidth}
+    \begin{figure}
+      \includegraphics[width=.8\textwidth]{k_ex_6.png}
+      \vspace*{-0.3cm}
+      \caption{K=6}
+    \end{figure}
+  \end{column}
+  \begin{column}{0.5\textwidth}
+    \begin{figure}
+      \includegraphics[width=.8\textwidth]{k_ex_5.png}
+      \vspace*{-0.3cm}
+      \caption{K=5}
+    \end{figure}
+  \end{column}
+\end{columns}
+\vspace*{-0.5cm}
+\begin{columns}[T]
+  \begin{column}{0.5\textwidth}
+    \begin{figure}
+      \includegraphics[width=.8\textwidth]{k_ex_4.png}
+      \vspace*{-0.3cm}
+      \caption{K=4}
+    \end{figure}
+  \end{column}
+  \begin{column}{0.5\textwidth}
+    \begin{figure}
+      \includegraphics[width=.8\textwidth]{k_ex_3.png}
+      \vspace*{-0.3cm}
+      \caption{K=3}
+    \end{figure}
+  \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{K-Means Intuition}
+\begin{itemize}
+\item<1-> Good Clustering: Within the cluster the variation ($WCV$) is small.
+\item<2-> Objective: $$ \min_{C_1,\ldots , C_k} \left( \sum_{i=1}^{k} WCV \left(C_i\right) \right) $$
+\item[]<3-> Minimize the $WCV$ as much as possible
+\end{itemize}
+\end{frame}
+
+\begin{frame}{K-Means Intuition}
+
+Objective: $$ \min_{C_1,\ldots , C_k} \left( \sum_{i=1}^{k} WCV \left(C_i\right) \right) $$
+\pause
+\begin{align*}
+WCV\left(C_i\right) &= \frac{1}{|C_i|}\texttt{ (Distance between all points)} \\
+ WCV\left(C_i\right) &= \frac{1}{|C_i|}\sum_{a\in C_i}\sum_{b\in C_i}|| x_a - x_b ||_2^2
+\end{align*}
+where $|C_i|$ is the number of points in $C_i$
+\end{frame}
+
+\begin{frame}{K-Means Algorithm}
+\begin{enumerate}
+\item<1-> Randomly assign a cluster number $i$ to every point $\left(\text{where } i\in\left\lbrace 1, \ldots k \right\rbrace \right)$
+\item<4-> Iterate until convergence:
+\item[]<2-> \begin{enumerate}
+\item<2-> For each cluster $C_i$ compute the centroid (mean of all points in $C_i$ over $d$ dimensions)
+\item<3-> Assign each observation to the cluster whose centroid is closest.
+\end{enumerate}
+\end{enumerate}
+\pause
+\textbf{Convergence}: Algorithm stops when assignments no longer change (or changes are minimal)
+\end{frame}
+
+\begin{frame}{Working of K-Means Algorithm}
+
+\end{frame}
+
+\begin{frame}{K-Means Convergence: Intuitive Proof (1/3)}
+\textbf{Key Idea}: The objective function (total within-cluster variance) decreases at each step and is bounded below.
+
+\pause
+\textbf{Objective Function}:
+$$J = \sum_{i=1}^{k} \sum_{x \in C_i} ||x - \mu_i||^2$$
+where $\mu_i$ is the centroid of cluster $C_i$
+\end{frame}
+
+\begin{frame}{K-Means Convergence: Intuitive Proof (2/3)}
+\textbf{Step 1: Update Centroids}
+\begin{itemize}
+\item Fix cluster assignments, optimize centroids
+\item For each cluster $C_i$, the centroid that minimizes $\sum_{x \in C_i} ||x - \mu_i||^2$ is $\mu_i = \frac{1}{|C_i|}\sum_{x \in C_i} x$
+\item This is the mean of the points in the cluster
+\item This step cannot increase $J$ (optimal choice given fixed assignments)
+\end{itemize}
+\end{frame}
+
+\begin{frame}{K-Means Convergence: Intuitive Proof (3/3)}
+\textbf{Step 2: Update Assignments}
+\begin{itemize}
+\item Fix centroids, reassign each point to nearest centroid
+\item For each point $x$, assign to $\arg\min_i ||x - \mu_i||^2$
+\item This step cannot increase $J$ (each point moves to minimize its contribution)
+\end{itemize}
+
+\pause
+\textbf{Conclusion}:
+\begin{itemize}
+\item $J$ decreases (or stays same) at each iteration
+\item $J \geq 0$ (bounded below)
+\item Finite number of possible assignments
+\item Therefore, algorithm must converge!
+\end{itemize}
+\pause
+\textbf{Note}: Converges to a \textbf{local minimum}, not necessarily global
+\end{frame}
+
+\begin{frame}{Why does K-Means work?}
+\begin{align*}
+\text{Let, } \mu_i\in R^d &= \text{Centroid for } i^{th} \text{ cluster} \\
+&= \frac{1}{|C_i|}\sum_{a\in C_i} x_a
+\end{align*}
+\pause
+Then,
+\begin{align*}
+WCV\left(C_i\right) &= \frac{1}{|C_i|}\sum_{a\in C_i}\sum_{b\in C_i}|| x_a - x_b ||_2^2 \\
+&= 2\sum_{a\in C_i} ||x_a - \mu_i||_2^2
+\end{align*}
+\pause
+This shows that K-Means gives the \textbf{local minima}.
+\end{frame}
+
+\begin{frame}{K-Means: Time and Space Complexity}
+\textbf{Time Complexity}:
+\begin{itemize}
+\item Per iteration: $O(nkd)$ where
+  \begin{itemize}
+  \item $n$ = number of points
+  \item $k$ = number of clusters
+  \item $d$ = number of dimensions
+  \end{itemize}
+\item Total: $O(nkdt)$ where $t$ = number of iterations
+\end{itemize}
+
+\pause
+\textbf{Space Complexity}: $O(n+k)d$
+\begin{itemize}
+\item Store data points and centroids
+\end{itemize}
+
+\pause
+\textbf{Practical Note}: Usually converges quickly, but worst-case can be exponential
+\end{frame}
+
+\section{K-Means Failure Modes}
+
+\begin{frame}{K-Means Failure Mode 1: Non-Spherical Clusters}
+\begin{itemize}
+\item K-Means assumes spherical (isotropic) clusters
+\item Fails with elongated, elliptical, or irregular shapes
+\item Uses Euclidean distance, which favors spherical boundaries
+\end{itemize}
+\pause
+\textbf{Example}: Two elongated, parallel clusters will be incorrectly split
+\end{frame}
+
+\begin{frame}{K-Means Failure Mode 2: Different Cluster Sizes}
+\begin{itemize}
+\item K-Means tends to create equal-sized clusters
+\item Struggles when true clusters have vastly different sizes
+\item Large clusters may be split, small clusters may be merged
+\end{itemize}
+\end{frame}
+
+\begin{frame}{K-Means Failure Mode 3: Different Densities}
+\begin{itemize}
+\item Assumes similar density across all clusters
+\item Fails when clusters have different densities
+\item Dense clusters may be over-segmented
+\item Sparse clusters may absorb nearby points incorrectly
+\end{itemize}
+\end{frame}
+
+\begin{frame}{K-Means Failure Mode 4: Non-Convex Shapes}
+\begin{itemize}
+\item K-Means creates convex decision boundaries
+\item Cannot handle non-convex shapes (e.g., crescents, rings)
+\item Example: Two interleaving half-moon shapes
+\end{itemize}
+\pause
+\textbf{Solution}: Use kernel K-Means or other methods (DBSCAN, spectral clustering)
+\end{frame}
+
+\begin{frame}{K-Means Failure Mode 5: Sensitive to Initialization}
+\begin{itemize}
+\item Random initialization can lead to poor local minima
+\item Different runs can give very different results
+\item Outliers can "capture" centroids
+\end{itemize}
+\pause
+\textbf{Example}: If initial centroid placed in low-density region, may create poor clustering
+\pause
+
+\textbf{Solution}: K-Means++ initialization (discussed next!)
+\end{frame}
+
+\begin{frame}{K-Means Failure Mode 6: Outliers}
+\begin{itemize}
+\item Sensitive to outliers (uses squared distances)
+\item Single outlier can significantly shift centroid
+\item Can create spurious clusters for noise points
+\end{itemize}
+\pause
+\textbf{Solutions}:
+\begin{itemize}
+\item Pre-process to remove outliers
+\item Use K-Medoids (more robust)
+\item Use trimmed K-Means
+\end{itemize}
+\end{frame}
+
+\begin{frame}{K-Means Failure Mode 7: Choosing K}
+\begin{itemize}
+\item Requires pre-specifying number of clusters $k$
+\item Wrong $k$ leads to over/under-segmentation
+\item No automatic way to determine optimal $k$
+\end{itemize}
+\pause
+\textbf{Methods to choose K}:
+\begin{itemize}
+\item Elbow method (plot inertia vs $k$)
+\item Silhouette analysis
+\item Gap statistic
+\item Domain knowledge
+\end{itemize}
+\end{frame}
+
+\section{K-Means++}
+
+\begin{frame}{K-Means++: Smarter Initialization}
+\textbf{Problem}: Random initialization can lead to poor results
+
+\pause
+\textbf{K-Means++ Solution}: Choose initial centroids that are far apart from each other
+
+\pause
+\textbf{Key Idea}:
+\begin{itemize}
+\item First centroid: chosen uniformly at random
+\item Subsequent centroids: chosen with probability proportional to squared distance from nearest existing centroid
+\item Spreads out initial centroids
+\end{itemize}
+\end{frame}
+
+\begin{frame}{K-Means++ Algorithm}
+\begin{enumerate}
+\item Choose first centroid $\mu_1$ uniformly at random from data points
+\pause
+\item For $i = 2, 3, \ldots, k$:
+  \begin{enumerate}
+  \item For each point $x$, compute $D(x) = $ distance to nearest centroid already chosen
+  \item Choose next centroid $\mu_i$ with probability $\propto D(x)^2$
+  \end{enumerate}
+\pause
+\item Proceed with standard K-Means algorithm
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{K-Means++: Why Does It Work?}
+\textbf{Intuition}:
+\begin{itemize}
+\item Points far from existing centroids are more likely to be chosen
+\item Ensures good coverage of the data space
+\item Reduces chance of multiple centroids in same cluster
+\end{itemize}
+
+\pause
+\textbf{Theoretical Guarantee}:
+\begin{itemize}
+\item K-Means++ initialization is $O(\log k)$-competitive with optimal clustering
+\item Expected objective value is at most $O(\log k)$ times optimal
+\item Much better than random initialization (no guarantees)
+\end{itemize}
+\end{frame}
+
+\begin{frame}{K-Means++ Example (1/3)}
+\textbf{Step 1}: Choose first centroid randomly
+\begin{itemize}
+\item Say we pick point $A$
+\item $\mu_1 = A$
+\end{itemize}
+\end{frame}
+
+\begin{frame}{K-Means++ Example (2/3)}
+\textbf{Step 2}: Choose second centroid
+\begin{itemize}
+\item Compute $D(x)^2$ for all points (distance to $A$)
+\item Point $B$ very far from $A$ has high $D(B)^2$
+\item Point $C$ close to $A$ has low $D(C)^2$
+\item Probability of choosing $B$ as $\mu_2$ is much higher than $C$
+\end{itemize}
+\end{frame}
+
+\begin{frame}{K-Means++ Example (3/3)}
+\textbf{Step 3}: Choose third centroid (if $k=3$)
+\begin{itemize}
+\item Now compute $D(x)^2$ = min distance to $\mu_1$ or $\mu_2$
+\item Points far from both $A$ and $B$ have higher probability
+\item Likely to choose point from third cluster region
+\end{itemize}
+
+\pause
+\textbf{Result}: Initial centroids spread across data, one per true cluster (ideally)
+\end{frame}
+
+\begin{frame}{K-Means++ vs Standard K-Means}
+\textbf{Advantages of K-Means++}:
+\begin{itemize}
+\item Better convergence to global optimum
+\item Fewer iterations typically needed
+\item More consistent results across runs
+\item Theoretical guarantees
+\end{itemize}
+
+\pause
+\textbf{Disadvantages}:
+\begin{itemize}
+\item Slightly more complex initialization
+\item Sequential process (harder to parallelize initialization)
+\item Still inherits other K-Means limitations
+\end{itemize}
+
+\pause
+\textbf{Practical Note}: K-Means++ is now the default in most libraries (scikit-learn, etc.)
+\end{frame}
+
+\section{Hierarchical Clustering}
+
+\begin{frame}{Hierarchical Clustering}
+\vspace{1cm}
+Gives a clustering of all the clusters \\
+\pause
+There is no need to specify $K$ at the start
+\pause
+\vspace{-0.5cm}
+\begin{figure}
+        \begin{subfigure}[b]{0.5\textwidth}
+                \includegraphics[width=\linewidth]{k_bad_1.png}
+        \end{subfigure}%
+        \begin{subfigure}[b]{0.5\textwidth}
+                \includegraphics[width=\linewidth]{k_bad_2.png}
+        \end{subfigure}%
+        \caption{Examples where K-Means fails}
+\end{figure}
+\end{frame}
+
+\begin{frame}{Algorithm for Hierarchical Clustering}
+\vspace{0.5cm}
+\textbf{Agglomerative (Bottom-Up)}:
+\begin{enumerate}
+\item<1-> Start with each point in its own cluster ($n$ clusters)
+\item<4-> Repeat until all points are in a single cluster:
+\item[]<2-> \begin{enumerate}
+\item<2-> Identify the 2 closest clusters
+\item<3-> Merge them
+\end{enumerate}
+\end{enumerate}
+\vspace{-0.8cm}
+\begin{columns}[T]
+  \begin{column}{0.5\textwidth}
+    \begin{figure}
+      \includegraphics[width=1.1\textwidth]{h_e_1.png}
+      \vspace*{-0.6cm}
+      \caption{Example Dataset}
+    \end{figure}
+  \end{column}
+  \begin{column}{0.5\textwidth}
+    \begin{figure}
+    \begin{overprint}
+      \onslide<4-> \includegraphics[width=1.1\textwidth]{h_e_2.png}
+      \vspace*{-0.6cm}
+      \caption{Final Clustering}
+    \end{overprint}
+    \end{figure}
+  \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Joining Clusters/Linkages}
+\begin{columns}[T]
+  \begin{column}{0.33\textwidth}
+  \textbf{Complete}\\
+  Max inter-cluster similarity
+  \end{column}
+  \begin{column}{0.33\textwidth}
+  \textbf{Single} \\
+  Min inter-cluster similarity
+  \end{column}
+  \begin{column}{0.33\textwidth}
+  \textbf{Centroid} \\
+  Dissimilarity between cluster centroids
+  \end{column}
+\end{columns}
+
+\pause
+\vspace{0.5cm}
+\textbf{Average Linkage}: Average distance between all pairs of points
+\begin{itemize}
+\item $d(C_i, C_j) = \frac{1}{|C_i||C_j|}\sum_{x\in C_i}\sum_{y\in C_j} d(x,y)$
+\end{itemize}
+
+\pause
+\textbf{Ward's Method}: Minimizes within-cluster variance when merging
+\end{frame}
+
+\section{Density-Based Clustering}
+
+\begin{frame}{Density-Based Clustering: Motivation}
+\textbf{Problem with K-Means and Hierarchical}:
+\begin{itemize}
+\item Assume clusters are convex and isotropic
+\item Struggle with arbitrary shapes
+\item Sensitive to noise and outliers
+\end{itemize}
+
+\pause
+\textbf{Density-Based Idea}:
+\begin{itemize}
+\item Clusters are dense regions separated by sparse regions
+\item Can find arbitrarily shaped clusters
+\item Can identify noise/outliers
+\end{itemize}
+\end{frame}
+
+\begin{frame}{DBSCAN: Density-Based Spatial Clustering}
+\textbf{Key Concepts}:
+\begin{itemize}
+\item \textbf{$\epsilon$-neighborhood}: Points within distance $\epsilon$ of a point $p$
+\item \textbf{Core point}: Has at least \texttt{MinPts} points in its $\epsilon$-neighborhood
+\item \textbf{Border point}: Not a core point, but in $\epsilon$-neighborhood of core point
+\item \textbf{Noise point}: Neither core nor border
+\end{itemize}
+\end{frame}
+
+\begin{frame}{DBSCAN Algorithm}
+\textbf{Parameters}: $\epsilon$ (radius), \texttt{MinPts} (minimum points)
+
+\pause
+\textbf{Algorithm}:
+\begin{enumerate}
+\item Mark all points as unvisited
+\item For each unvisited point $p$:
+  \begin{enumerate}
+  \item Mark $p$ as visited
+  \item Find all points in $\epsilon$-neighborhood of $p$
+  \item If $|\text{neighborhood}| \geq \texttt{MinPts}$:
+    \begin{itemize}
+    \item Create new cluster
+    \item Add $p$ and expand cluster (recursively add neighbors)
+    \end{itemize}
+  \item Else: mark $p$ as noise (may be changed later)
+  \end{enumerate}
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{DBSCAN: Advantages}
+\begin{itemize}
+\item Can find arbitrarily shaped clusters
+\item Robust to outliers (marks them as noise)
+\item No need to specify number of clusters
+\item Only two parameters: $\epsilon$ and \texttt{MinPts}
+\item Deterministic (same result each run)
+\end{itemize}
+\end{frame}
+
+\begin{frame}{DBSCAN: Disadvantages}
+\begin{itemize}
+\item Sensitive to parameter choice ($\epsilon$, \texttt{MinPts})
+\item Struggles with varying density clusters
+\item Not suitable for high-dimensional data (curse of dimensionality)
+\item Cannot cluster datasets with large differences in densities
+\item Time complexity: $O(n^2)$ (can be $O(n \log n)$ with spatial index)
+\end{itemize}
+\end{frame}
+
+\begin{frame}{DBSCAN Example}
+\textbf{Dataset}: Points in 2D with two clusters and noise
+
+\pause
+\textbf{Parameters}: $\epsilon = 0.5$, \texttt{MinPts} = 4
+
+\pause
+\textbf{Result}:
+\begin{itemize}
+\item Dense regions become clusters
+\item Sparse points between clusters marked as noise
+\item Can handle non-convex shapes (e.g., crescents, rings)
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Choosing DBSCAN Parameters}
+\textbf{$\epsilon$ (radius)}:
+\begin{itemize}
+\item Plot k-nearest neighbor distance graph
+\item Look for "elbow" where distance increases sharply
+\item Points after elbow are likely noise
+\end{itemize}
+
+\pause
+\textbf{\texttt{MinPts}}:
+\begin{itemize}
+\item Rule of thumb: \texttt{MinPts} $\geq d + 1$ where $d$ is dimensionality
+\item Larger values: more robust to noise, but may merge clusters
+\item Smaller values: more sensitive, may create many small clusters
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Density-Based Methods: Variants}
+\textbf{OPTICS} (Ordering Points To Identify Clustering Structure):
+\begin{itemize}
+\item Extension of DBSCAN
+\item Produces reachability plot showing cluster structure
+\item Can extract clusters at different densities
+\end{itemize}
+
+\pause
+\textbf{HDBSCAN} (Hierarchical DBSCAN):
+\begin{itemize}
+\item Builds hierarchy of clusters
+\item Automatically selects stable clusters
+\item More robust parameter selection
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Comparing Clustering Methods}
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+\textbf{Method} & \textbf{Shape} & \textbf{Outliers} & \textbf{K?} & \textbf{Speed} \\
+\hline
+K-Means & Spherical & Sensitive & Yes & Fast \\
+K-Means++ & Spherical & Sensitive & Yes & Fast \\
+Hierarchical & Any & Sensitive & No & Slow \\
+DBSCAN & Arbitrary & Robust & No & Medium \\
+\hline
+\end{tabular}
+
+\vspace{0.5cm}
+\pause
+\textbf{Choosing a Method}:
+\begin{itemize}
+\item Known $k$, spherical clusters: K-Means++
+\item Arbitrary shapes, noise: DBSCAN
+\item Hierarchy needed: Hierarchical
+\item Large data: K-Means++ or Mini-Batch K-Means
+\end{itemize}
+\end{frame}
+
+\begin{frame}{More Code}
+\begin{center}
+\href{https://colab.research.google.com/drive/1HMPn0mpMAe4XFe5Zvh4oExgi5evkgjTi}{Google Colab Link}
+\end{center}
+\end{frame}
+
+\end{document}
