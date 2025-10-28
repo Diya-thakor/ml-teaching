@@ -50,6 +50,15 @@ Real-world machine learning assignments from ES335 and ES654 courses with GitHub
 
 [View Assignments](assignments.qmd){.btn .btn-primary}
 :::
+
+::: {.feature-card}
+<div class="feature-icon"></div>
+
+### Interactive Apps
+Progressive Streamlit apps demonstrating clustering with simple to deep features. Learn through visualization!
+
+[Explore Apps](apps.qmd){.btn .btn-primary}
+:::
 :::
 
 ## Course Overview
