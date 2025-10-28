@@ -1,11 +1,9 @@
 streamlit
 torch
 torchvision
-timm
 pillow
 numpy
 matplotlib
 scikit-learn
-plotly
-umap-learn
+scipy
 requests

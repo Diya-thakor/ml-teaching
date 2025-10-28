@@ -1,0 +1,307 @@
+---
+title: "Interactive Apps"
+page-layout: full
+title-block-banner: true
+---
+
+## Hands-On Learning with Streamlit Apps
+
+Interactive web apps provide visual, hands-on exploration of machine learning concepts through progressive complexity. All apps follow a **simple → sophisticated** learning path to build intuition gradually.
+
+::: {.callout-note}
+## Educational Philosophy
+Each app starts with interpretable, simple features and progressively introduces more sophisticated techniques. This approach reveals a key insight: **good features matter more than complex algorithms!**
+:::
+
+### Image Clustering Apps
+
+#### 1. Image Clustering (ResNet18)
+**Focus**: Semantic image embeddings and similarity search
+
+Learn how pretrained CNNs create meaningful representations for clustering and search:
+
+- **Features**: 512-D ResNet18 embeddings extracted from ImageNet-trained model
+- **Clustering**: K-Means, DBSCAN, Hierarchical algorithms
+- **Visualization**: PCA, t-SNE, UMAP dimensionality reduction
+- **Analysis**: Cosine similarity, pairwise similarity matrices
+- **Optimization**: Elbow method to find optimal number of clusters
+
+**Key Concepts**:
+- Extract semantic features before final classification layer
+- Cluster images by visual content, not just pixels
+- Similarity search for reverse image lookup
+- 45 diverse sample images included
+
+::: {.callout-tip}
+## Try This
+Use the elbow curve to automatically find the optimal number of clusters, then explore how different images cluster together based on semantic content!
+:::
+
+**Repository**: [apps/image-clustering/](https://github.com/nipunbatra/ml-teaching/tree/master/apps/image-clustering)
+
+---
+
+#### 2. Simple Image Clustering (Progressive Features)
+**Focus**: Understanding how feature choice affects clustering quality
+
+Progressive exploration from hand-crafted to learned features:
+
+**Tab 1: RGB Features (3D)**
+- Cluster pixels by color similarity only
+- Simple, fast, interpretable
+- **Problem**: Ignores spatial information - similar colors anywhere group together
+
+**Tab 2: Position Features (2D)**
+- Cluster pixels by X,Y location only
+- Creates spatially coherent regions
+- **Problem**: Ignores color - might group unrelated regions
+
+**Tab 3: RGB + Position (5D)**
+- Combine color AND location
+- Adjustable weights to balance features
+- **Better**: Spatially coherent regions with similar colors
+
+**Tab 4: ResNet18 Dense Features (64-512D)**
+- Extract CNN features at each spatial location
+- Bilinear upsampling to full resolution
+- Layer selection (layer1-4) trades resolution vs semantics
+- **Best**: Semantic understanding - recognizes objects, textures, patterns
+
+**Key Learning**:
+- Feature engineering matters enormously
+- Deep features capture semantics, not just statistics
+- Dense feature maps enable pixel-level understanding
+- 7 sample images with diverse content
+
+::: {.callout-important}
+## Key Insight
+ResNet18 features dramatically outperform hand-crafted features (RGB, position) because they capture **semantic meaning**, not just surface statistics. This is true across all clustering algorithms!
+:::
+
+**Repository**: [apps/simple-clustering/](https://github.com/nipunbatra/ml-teaching/tree/master/apps/simple-clustering)
+
+---
+
+### Document Clustering App
+
+#### 3. Document Clustering (Progressive NLP)
+**Focus**: Evolution of text representation from keywords to semantics
+
+Progressive exploration of NLP techniques:
+
+**Tab 1: Simple Statistical Features (6D)**
+- Word count, sentence count, average word length
+- Punctuation, digits, uppercase counts
+- **Clusters by**: Document style (length, complexity)
+- **Problem**: Ignores content - technical papers on different topics group together
+
+**Tab 2: TF-IDF Vectors (50-200D)**
+- Term Frequency × Inverse Document Frequency
+- Highlights important words per document
+- **Clusters by**: Shared vocabulary
+- **Better**: Captures topic keywords
+- **Problem**: Treats words independently - misses synonyms and context
+
+**Tab 3: BERT Embeddings (384D)**
+- Sentence-BERT (all-MiniLM-L6-v2) pretrained transformer
+- Dense semantic representations
+- **Clusters by**: Actual meaning and topic
+- **Best**: Understands synonyms, context, paraphrasing
+- Shows cluster cohesion with cosine similarity
+
+**Key Learning**:
+- Simple features cluster by style, not meaning
+- TF-IDF captures keywords but treats words as independent tokens
+- BERT understands semantic content - "ML" = "machine learning" = "AI"
+- 19 sample documents across 4 categories (Tech, Health, Environment, Sports)
+
+::: {.callout-tip}
+## Experiment
+Compare clustering results across tabs. Notice how simple features group documents incorrectly, while BERT accurately identifies topics!
+:::
+
+**Repository**: [apps/document-clustering/](https://github.com/nipunbatra/ml-teaching/tree/master/apps/document-clustering)
+
+---
+
+## Common Features Across All Apps
+
+### Elbow Method Visualization
+Every app includes elbow curve analysis:
+
+- **Plot**: Within-Cluster Sum of Squares (WCSS) vs K
+- **Automatic detection**: Second derivative finds maximum curvature
+- **Visual marker**: Red star and line indicate suggested K
+- **Education**: Learn when adding more clusters stops helping
+
+### Clustering Algorithms
+- **K-Means**: Fast, assumes spherical clusters, requires specifying K
+- **DBSCAN**: Density-based, finds arbitrary shapes (image apps)
+- **Hierarchical**: Agglomerative clustering (image apps)
+
+### Interactive Controls
+- Adjust number of clusters with sliders
+- Choose dimensionality reduction method (PCA/t-SNE/UMAP)
+- Control visualization parameters
+- Expand/collapse educational explanations
+
+---
+
+## Running Apps Locally
+
+### Prerequisites
+```bash
+# Install dependencies
+cd apps/<app-name>
+pip install -r requirements.txt
+```
+
+### Launch App
+```bash
+# Start Streamlit server
+streamlit run app.py
+
+# Or specify port
+streamlit run app.py --server.port 8501
+```
+
+### Sample Data Included
+- **Image Clustering**: 45 diverse images
+- **Simple Clustering**: 7 carefully selected images
+- **Document Clustering**: 19 documents across 4 categories
+
+---
+
+## Deployment (Coming Soon)
+
+Apps will be deployed on:
+- **Hugging Face Spaces**: Free hosting with GPU support
+- **Streamlit Cloud**: Official Streamlit platform
+
+Deployed links will be added here when available.
+
+---
+
+## Pedagogical Approach
+
+### Progressive Complexity
+All apps follow this learning path:
+
+1. **Simple**: Start with interpretable features (RGB, word counts)
+2. **Intermediate**: Combine features or use TF-IDF
+3. **Advanced**: Deep learning features (ResNet18, BERT)
+
+### Visual Learning
+- Clear matplotlib visualizations
+- Side-by-side comparisons
+- Annotated plots with explanations
+- 2D projections of high-dimensional data
+
+### Active Exploration
+- Modify parameters and see instant updates
+- Sample data included - no setup needed
+- Fast iteration for experimentation
+- Expandable "What's happening?" sections
+
+### Cross-Domain Insights
+
+**Images ↔ Documents Analogy**:
+
+| Concept | Images | Documents |
+|---------|--------|-----------|
+| Simple features | Position (X, Y) | Word/sentence counts |
+| Intermediate | RGB colors | TF-IDF vectors |
+| Deep features | ResNet18 (512-D) | BERT (384-D) |
+| Semantic space | Visual similarity | Topic similarity |
+
+**Universal Lesson**: Same clustering algorithms work everywhere - **features are what matter!**
+
+---
+
+## Learning Outcomes
+
+After using these apps, students will understand:
+
+**Conceptual**:
+- How feature choice fundamentally affects clustering quality
+- Why deep learning features capture semantics
+- Progressive complexity reveals insights gradually
+- Trade-offs between speed and quality
+
+**Technical**:
+- Extract features from pretrained models (ResNet18, BERT)
+- Apply clustering algorithms (K-Means, DBSCAN)
+- Use dimensionality reduction for visualization
+- Determine optimal K with elbow method
+
+**Practical**:
+- Build interactive ML visualizations
+- Deploy Streamlit apps
+- Process images and text with deep learning
+- Interpret high-dimensional embeddings
+
+---
+
+## Technical Stack
+
+**Framework**: Streamlit
+**ML Libraries**: scikit-learn, PyTorch, sentence-transformers
+**Visualization**: matplotlib, numpy
+**Models**:
+- ResNet18 (torchvision) - 11M params, 512-D embeddings
+- Sentence-BERT (all-MiniLM-L6-v2) - 22M params, 384-D embeddings
+
+---
+
+## Repository Structure
+
+```
+apps/
+├── image-clustering/              # ResNet18 image clustering
+│   ├── app.py                    # Main Streamlit app
+│   ├── requirements.txt          # Dependencies
+│   ├── sample_images/            # 45 sample images
+│   └── README.md                 # Documentation
+│
+├── simple-clustering/            # Progressive image clustering
+│   ├── app.py                    # Main Streamlit app
+│   ├── requirements.txt          # Dependencies
+│   ├── sample_images/            # 7 sample images
+│   ├── download_samples.py       # Sample downloader
+│   └── README.md                 # Documentation
+│
+├── document-clustering/          # Progressive document clustering
+│   ├── app.py                    # Main Streamlit app
+│   ├── requirements.txt          # Dependencies
+│   ├── sample_documents/         # 19 text files
+│   ├── create_samples.py         # Sample generator
+│   └── README.md                 # Documentation
+│
+└── README.md                     # Main apps documentation
+```
+
+---
+
+## Quick Navigation
+
+- [Course Homepage](index.qmd) - Main course page
+- [Lecture Slides](slides.qmd) - Theoretical foundations
+- [Jupyter Notebooks](notebooks.qmd) - Code implementations
+- [Tutorials](tutorials.qmd) - Practice problems
+- [GitHub Repository](https://github.com/nipunbatra/ml-teaching) - Source code
+
+---
+
+## Contributing
+
+Want to add a new app or improve existing ones?
+
+1. Follow the progressive complexity philosophy
+2. Include sample data for immediate use
+3. Add educational explanations in expandable sections
+4. Update this page and the main apps README
+5. Submit a pull request
+
+---
+
+*For questions or feedback, visit [Prof. Nipun Batra's homepage](https://nipunbatra.github.io) or [create an issue](https://github.com/nipunbatra/ml-teaching/issues)*
