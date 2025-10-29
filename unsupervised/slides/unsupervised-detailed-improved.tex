@@ -1,0 +1,1956 @@
+\documentclass{beamer}
+\usepackage{../../shared/styles/custom}
+
+\def\checkmark{\tikz\fill[scale=0.4](0,.35) -- (.25,0) -- (1,.7) -- (.25,.15) -- cycle;}
+
+\graphicspath{ {../assets/clustering/figures/} }
+
+\title{Unsupervised Learning: Clustering}
+\subtitle{Finding Structure in Unlabeled Data}
+\date{\today}
+\author{Nipun Batra}
+\institute{IIT Gandhinagar}
+
+\begin{document}
+  \maketitle
+
+\begin{frame}{What We'll Learn Today}
+\begin{enumerate}
+\item \textbf{Why} unsupervised learning? (Motivation)
+\item \textbf{What} is clustering? (Intuition first!)
+\item \textbf{How} does K-Means work? (Step-by-step)
+\item \textbf{When} does it fail? (Limitations)
+\item \textbf{What} are alternatives? (Hierarchical, DBSCAN)
+\end{enumerate}
+
+\pause
+\begin{keypointsbox}{Key Points}
+\textbf{Key Philosophy}: We'll build intuition with examples, then add rigor!
+\end{keypointsbox}
+\end{frame}
+
+\section{Motivation}
+
+\begin{frame}{Supervised vs Unsupervised Learning}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\textbf{Supervised Learning}
+\begin{itemize}
+\item Have: Features $X$ + Labels $Y$
+\item Goal: Learn $f: X \rightarrow Y$
+\item Example: Spam detection
+  \begin{itemize}
+  \item Email text → Spam/Not Spam
+  \end{itemize}
+\end{itemize}
+\end{column}
+
+\pause
+
+\begin{column}{0.48\textwidth}
+\textbf{Unsupervised Learning}
+\begin{itemize}
+\item Have: Features $X$ only (no labels!)
+\item Goal: Find \alert{structure/patterns}
+\item Example: Customer segmentation
+  \begin{itemize}
+  \item Customer data → Find groups
+  \end{itemize}
+\end{itemize}
+\end{column}
+\end{columns}
+
+\pause
+\vspace{0.5cm}
+\begin{alertbox}
+\textbf{Key Difference}: We don't know the "right answer" beforehand!
+\end{alertbox}
+\end{frame}
+
+\begin{frame}{Why Unsupervised Learning?}
+\textbf{Three Main Reasons}:
+
+\pause
+\textbf{1. Labels are expensive/impossible to get}
+\begin{itemize}
+\item Medical images: Need expert radiologists (costly!)
+\item Customer behavior: No "true" groupings exist
+\item Exploratory analysis: Don't know what to look for yet
+\end{itemize}
+
+\pause
+\textbf{2. Discover hidden patterns}
+\begin{itemize}
+\item Find new disease subtypes
+\item Identify market segments you didn't know existed
+\item Detect anomalies (fraud, network intrusion)
+\end{itemize}
+
+\pause
+\textbf{3. Data preprocessing}
+\begin{itemize}
+\item Dimensionality reduction before supervised learning
+\item Feature extraction
+\item Data compression
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Real-World Applications}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\textbf{Business}
+\begin{itemize}
+\item \textbf{E-commerce}: Group customers by purchase behavior
+\item \textbf{Marketing}: Segment markets for targeted campaigns
+\item \textbf{Recommendation}: "Customers who bought X also bought Y"
+\end{itemize}
+
+\pause
+\textbf{Healthcare}
+\begin{itemize}
+\item \textbf{Disease subtypes}: Find variants of cancer
+\item \textbf{Patient stratification}: Personalized treatment
+\item \textbf{Gene expression}: Group similar genes
+\end{itemize}
+\end{column}
+
+\pause
+\begin{column}{0.48\textwidth}
+\textbf{Technology}
+\begin{itemize}
+\item \textbf{Image segmentation}: Divide image into regions
+\item \textbf{Document clustering}: Organize large text collections
+\item \textbf{Anomaly detection}: Find unusual patterns
+\end{itemize}
+
+\pause
+\textbf{Science}
+\begin{itemize}
+\item \textbf{Astronomy}: Classify galaxies
+\item \textbf{Climate}: Identify weather patterns
+\item \textbf{Biology}: Group similar species
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+\section{What is Clustering?}
+
+\begin{frame}{Clustering: The Intuition}
+\textbf{Informal Definition}:
+\begin{quote}
+Group similar objects together, separate dissimilar objects
+\end{quote}
+
+\pause
+\textbf{Key Questions}:
+\begin{enumerate}
+\item What does "similar" mean? (Need a distance/similarity measure)
+\pause
+\item How many groups? (May or may not know beforehand)
+\pause
+\item What shape are clusters? (Spherical? Elongated? Arbitrary?)
+\end{enumerate}
+
+\pause
+\begin{examplebox}{Everyday Example}
+Organizing your wardrobe:
+\begin{itemize}
+\item \textbf{By color}: All red clothes together
+\item \textbf{By type}: All shirts together
+\item \textbf{By season}: All winter clothes together
+\end{itemize}
+Same clothes, different clusterings! Choice depends on your goal.
+\end{examplebox}
+\end{frame}
+
+\begin{frame}{Clustering: Visual Intuition}
+\begin{figure}[htp]
+    \centering
+    \includegraphics[width=0.7\linewidth]{gt_iris.png}
+    \caption{Iris Dataset: Can you spot the groups?}
+\end{figure}
+
+\pause
+\begin{itemize}
+\item \textbf{Visual}: Easy to see 2-3 distinct groups
+\item \textbf{Question}: How do we make a computer see this?
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Formal Problem Statement}
+\textbf{Given}:
+\begin{itemize}
+\item $n$ data points: $\{x_1, x_2, \ldots, x_n\}$ where $x_i \in \mathbb{R}^d$
+\item Number of clusters $K$ (sometimes)
+\item Distance/similarity measure (usually Euclidean)
+\end{itemize}
+
+\pause
+\textbf{Find}:
+\begin{itemize}
+\item Partition data into $K$ clusters: $C_1, C_2, \ldots, C_K$
+\item Such that:
+  \begin{itemize}
+  \item Points in same cluster are similar (small distances)
+  \item Points in different clusters are dissimilar (large distances)
+  \end{itemize}
+\end{itemize}
+
+\pause
+\textbf{Mathematically}:
+\begin{itemize}
+\item $C_1 \cup C_2 \cup \ldots \cup C_K = \{1, 2, \ldots, n\}$ (every point in some cluster)
+\item $C_i \cap C_j = \emptyset$ for $i \neq j$ (no overlaps)
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Types of Clustering Algorithms}
+\begin{definition}[Clustering Algorithm Families]
+Different approaches to finding clusters:
+\end{definition}
+
+\begin{enumerate}
+\item \textbf{Partitioning}: Divide data into $K$ groups
+  \begin{itemize}
+  \item K-Means, K-Medoids
+  \item Need to specify $K$
+  \end{itemize}
+
+\pause
+\item \textbf{Hierarchical}: Build tree of clusters
+  \begin{itemize}
+  \item Agglomerative (bottom-up), Divisive (top-down)
+  \item Don't need to specify $K$
+  \end{itemize}
+
+\pause
+\item \textbf{Density-Based}: Find dense regions
+  \begin{itemize}
+  \item DBSCAN, OPTICS
+  \item Can find arbitrary shapes
+  \end{itemize}
+
+\pause
+\item \textbf{Model-Based}: Assume statistical model
+  \begin{itemize}
+  \item Gaussian Mixture Models (GMM)
+  \item Probabilistic approach
+  \end{itemize}
+\end{enumerate}
+
+\pause
+\textbf{Today's Focus}: K-Means (most popular), then Hierarchical and DBSCAN
+\end{frame}
+
+\section{K-Means: Intuition First!}
+
+\begin{frame}{K-Means: The Big Idea}
+\textbf{Core Intuition}:
+\begin{quote}
+Each cluster has a \alert{center point (centroid)}.\\
+Assign each point to the nearest centroid.\\
+Update centroids based on assigned points.\\
+Repeat until stable!
+\end{quote}
+
+\pause
+\textbf{Why "K-Means"?}
+\begin{itemize}
+\item \textbf{K}: Number of clusters
+\item \textbf{Means}: Centroids are computed as means (averages)
+\end{itemize}
+
+\pause
+\begin{keypointsbox}{Key Points}
+\textbf{Two-Step Dance}:
+\begin{enumerate}
+\item \textbf{Assignment}: Points → Nearest centroid
+\item \textbf{Update}: Centroids → Mean of assigned points
+\end{enumerate}
+Repeat until nothing changes!
+\end{keypointsbox}
+\end{frame}
+
+\begin{frame}{K-Means: Visual Walkthrough (Step 0)}
+\begin{figure}[htp]
+    \centering
+    \includegraphics[width=0.6\linewidth]{k_1.png}
+    \caption{Raw data: Can you guess $K=5$?}
+\end{figure}
+
+\textbf{Start}: Pick $K=5$ centroids randomly (colored points)
+\end{frame}
+
+\begin{frame}{K-Means: What Are We Optimizing?}
+\textbf{Intuitive Goal}:
+\begin{quote}
+Make clusters \alert{tight} - minimize distances within each cluster
+\end{quote}
+
+\pause
+\textbf{Formal Objective}: Minimize \alert{Within-Cluster Sum of Squares (WCSS)}
+$$\text{WCSS} = \sum_{k=1}^{K} \sum_{x_i \in C_k} \|x_i - \mu_k\|^2$$
+
+where:
+\begin{itemize}
+\item $\mu_k = \frac{1}{|C_k|}\sum_{x_i \in C_k} x_i$ is the centroid of cluster $k$
+\item $\|x_i - \mu_k\|^2$ is squared distance from point to its centroid
+\end{itemize}
+
+\pause
+\begin{alertbox}
+\textbf{In words}: Sum of squared distances from each point to its cluster center
+\end{alertbox}
+\end{frame}
+
+\begin{frame}{Why This Objective Makes Sense}
+\textbf{Minimizing WCSS means}:
+\begin{itemize}
+\item<1-> Points close to their centroid → Tight clusters \checkmark
+\item<2-> If WCSS is small → Clusters are compact \checkmark
+\item<3-> Lower WCSS → Better clustering (usually) \checkmark
+\end{itemize}
+
+\vspace{0.5cm}
+\onslide<4->{
+\begin{examplebox}{Concrete Example}
+Suppose we have 3 points in cluster $C_1$: $(0,0), (1,0), (0,1)$
+\begin{itemize}
+\item Centroid: $\mu_1 = (\frac{1}{3}, \frac{1}{3})$
+\item WCSS for $C_1$:
+$$\|(0,0) - \mu_1\|^2 + \|(1,0) - \mu_1\|^2 + \|(0,1) - \mu_1\|^2 = \frac{2}{3}$$
+\end{itemize}
+\end{examplebox}
+}
+\end{frame}
+
+\section{K-Means Algorithm}
+
+\begin{frame}{K-Means Algorithm: The Recipe}
+\textbf{Input}:
+\begin{itemize}
+\item Data points $\{x_1, \ldots, x_n\}$
+\item Number of clusters $K$
+\end{itemize}
+
+\pause
+\textbf{Algorithm}:
+\begin{enumerate}
+\item<2-> \textbf{Initialize}: Randomly choose $K$ points as initial centroids $\{\mu_1, \ldots, \mu_K\}$
+
+\item<3-> \textbf{Repeat} until convergence:
+  \begin{enumerate}
+  \item<4-> \textbf{Assignment Step}:
+    \begin{itemize}
+    \item For each point $x_i$, assign to nearest centroid:
+    $$C_k^{(t)} = \{i : \|x_i - \mu_k^{(t)}\| \leq \|x_i - \mu_j^{(t)}\| \text{ for all } j\}$$
+    \end{itemize}
+
+  \item<5-> \textbf{Update Step}:
+    \begin{itemize}
+    \item Recompute each centroid as mean of assigned points:
+    $$\mu_k^{(t+1)} = \frac{1}{|C_k^{(t)}|} \sum_{i \in C_k^{(t)}} x_i$$
+    \end{itemize}
+  \end{enumerate}
+
+\item<6-> \textbf{Convergence}: Stop when assignments don't change (or change is tiny)
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{K-Means: Assignment Step in Detail}
+\textbf{For each point $x_i$}:
+
+\begin{enumerate}
+\item<1-> Compute distance to ALL $K$ centroids:
+$$d_k = \|x_i - \mu_k\|^2 \quad \text{for } k = 1, \ldots, K$$
+
+\item<2-> Find minimum distance:
+$$k^* = \arg\min_{k} d_k$$
+
+\item<3-> Assign $x_i$ to cluster $k^*$:
+$$\text{label}[i] = k^*$$
+\end{enumerate}
+
+\vspace{0.5cm}
+\onslide<4->{
+\begin{examplebox}{Example}
+Point $x = (2, 3)$, centroids $\mu_1 = (1, 1)$, $\mu_2 = (4, 4)$
+\begin{itemize}
+\item $d_1 = (2-1)^2 + (3-1)^2 = 5$
+\item $d_2 = (2-4)^2 + (3-4)^2 = 5$
+\item Tie! (pick either, or break ties consistently)
+\end{itemize}
+\end{examplebox}
+}
+\end{frame}
+
+\begin{frame}{K-Means: Update Step in Detail}
+\textbf{For each cluster $C_k$}:
+
+\begin{enumerate}
+\item<1-> Collect all points assigned to cluster $k$:
+$$C_k = \{x_i : \text{label}[i] = k\}$$
+
+\item<2-> Compute mean across all dimensions:
+$$\mu_k = \frac{1}{|C_k|} \sum_{x_i \in C_k} x_i$$
+
+\item<3-> This new $\mu_k$ becomes the centroid for next iteration
+\end{enumerate}
+
+\vspace{0.5cm}
+\onslide<4->{
+\begin{examplebox}{Example}
+Cluster $C_1$ has points: $(0, 0), (2, 0), (0, 2)$
+$$\mu_1 = \frac{1}{3}\left[(0,0) + (2,0) + (0,2)\right] = \left(\frac{2}{3}, \frac{2}{3}\right)$$
+\end{examplebox}
+}
+\end{frame}
+
+\begin{frame}{K-Means: Worked Example (1/6)}
+\textbf{Dataset}: 6 points in 2D
+
+\begin{center}
+\begin{tabular}{cc}
+\textbf{Point} & \textbf{Coordinates} \\
+\hline
+$x_1$ & $(1, 1)$ \\
+$x_2$ & $(2, 1)$ \\
+$x_3$ & $(4, 3)$ \\
+$x_4$ & $(5, 4)$ \\
+$x_5$ & $(1, 3)$ \\
+$x_6$ & $(2, 2)$ \\
+\end{tabular}
+\end{center}
+
+\textbf{Goal}: Cluster into $K=2$ groups
+
+\textbf{Step 0}: Initialize centroids randomly
+\begin{itemize}
+\item $\mu_1 = (1, 1)$ (pick $x_1$)
+\item $\mu_2 = (5, 4)$ (pick $x_4$)
+\end{itemize}
+\end{frame}
+
+\begin{frame}{K-Means: Worked Example (2/6) - Iteration 1: Assignment}
+\textbf{Current centroids}: $\mu_1 = (1, 1)$, $\mu_2 = (5, 4)$
+
+\textbf{Assign each point to nearest centroid}:
+
+\begin{center}
+\small
+\begin{tabular}{ccccc}
+\textbf{Point} & $d(\mu_1)$ & $d(\mu_2)$ & \textbf{Nearest} & \textbf{Cluster} \\
+\hline
+$x_1 = (1,1)$ & $0$ & $\sqrt{25} = 5$ & $\mu_1$ & $C_1$ \\
+$x_2 = (2,1)$ & $1$ & $\sqrt{18} \approx 4.2$ & $\mu_1$ & $C_1$ \\
+$x_3 = (4,3)$ & $\sqrt{13} \approx 3.6$ & $\sqrt{2} \approx 1.4$ & $\mu_2$ & $C_2$ \\
+$x_4 = (5,4)$ & $5$ & $0$ & $\mu_2$ & $C_2$ \\
+$x_5 = (1,3)$ & $2$ & $\sqrt{17} \approx 4.1$ & $\mu_1$ & $C_1$ \\
+$x_6 = (2,2)$ & $\sqrt{2} \approx 1.4$ & $\sqrt{13} \approx 3.6$ & $\mu_1$ & $C_1$ \\
+\end{tabular}
+\end{center}
+
+\textbf{Result}: $C_1 = \{x_1, x_2, x_5, x_6\}$, $C_2 = \{x_3, x_4\}$
+\end{frame}
+
+\begin{frame}{K-Means: Worked Example (3/6) - Iteration 1: Update}
+\textbf{Update centroids as means}:
+
+\textbf{Cluster 1}: $C_1 = \{(1,1), (2,1), (1,3), (2,2)\}$
+$$\mu_1^{\text{new}} = \frac{1}{4}[(1,1) + (2,1) + (1,3) + (2,2)] = \frac{1}{4}(6, 7) = (1.5, 1.75)$$
+
+\pause
+\textbf{Cluster 2}: $C_2 = \{(4,3), (5,4)\}$
+$$\mu_2^{\text{new}} = \frac{1}{2}[(4,3) + (5,4)] = \frac{1}{2}(9, 7) = (4.5, 3.5)$$
+
+\pause
+\begin{alertbox}
+\textbf{Notice}: Centroids moved from $(1,1), (5,4)$ to $(1.5, 1.75), (4.5, 3.5)$\\
+They shifted toward the "center of mass" of their clusters!
+\end{alertbox}
+\end{frame}
+
+\begin{frame}{K-Means: Worked Example (4/6) - Iteration 2: Assignment}
+\textbf{New centroids}: $\mu_1 = (1.5, 1.75)$, $\mu_2 = (4.5, 3.5)$
+
+\textbf{Reassign points}:
+
+\begin{center}
+\small
+\begin{tabular}{ccccc}
+\textbf{Point} & $d(\mu_1)$ & $d(\mu_2)$ & \textbf{Nearest} & \textbf{Cluster} \\
+\hline
+$x_1 = (1,1)$ & $0.9$ & $6.8$ & $\mu_1$ & $C_1$ \\
+$x_2 = (2,1)$ & $0.8$ & $7.1$ & $\mu_1$ & $C_1$ \\
+$x_3 = (4,3)$ & $3.8$ & $0.4$ & $\mu_2$ & $C_2$ \\
+$x_4 = (5,4)$ & $6.8$ & $0.4$ & $\mu_2$ & $C_2$ \\
+$x_5 = (1,3)$ & $1.6$ & $3.9$ & $\mu_1$ & $C_1$ \\
+$x_6 = (2,2)$ & $0.5$ & $6.6$ & $\mu_1$ & $C_1$ \\
+\end{tabular}
+\end{center}
+
+\textbf{Result}: Same as before! $C_1 = \{x_1, x_2, x_5, x_6\}$, $C_2 = \{x_3, x_4\}$
+
+\textbf{Convergence}: Assignments didn't change → STOP!
+\end{frame}
+
+\begin{frame}{K-Means: Worked Example (5/6) - Final Clustering}
+\textbf{Final clusters}:
+\begin{itemize}
+\item \textbf{Cluster 1}: $(1,1), (2,1), (1,3), (2,2)$ with centroid $(1.5, 1.75)$
+\item \textbf{Cluster 2}: $(4,3), (5,4)$ with centroid $(4.5, 3.5)$
+\end{itemize}
+
+\pause
+\textbf{WCSS calculation}:
+\begin{align*}
+\text{WCSS} &= \sum_{i \in C_1} \|x_i - \mu_1\|^2 + \sum_{i \in C_2} \|x_i - \mu_2\|^2 \\
+&= [0.9 + 0.8 + 1.6 + 0.5] + [0.4 + 0.4] \\
+&= 3.8 + 0.8 = 4.6
+\end{align*}
+
+\pause
+\begin{keypointsbox}{Key Points}
+\textbf{Converged in 2 iterations!} \\
+Typically converges quickly (5-10 iterations), but worst-case can be slow.
+\end{keypointsbox}
+\end{frame}
+
+\begin{frame}{K-Means: Worked Example (6/6) - Visualization}
+% Placeholder for visualization
+\textbf{Visual summary}:
+\begin{itemize}
+\item \textbf{Initial}: Random centroids far from optimal
+\item \textbf{Iteration 1}: Centroids move toward cluster centers
+\item \textbf{Iteration 2}: Centroids stabilize, assignments don't change
+\item \textbf{Final}: Two clear, compact clusters
+\end{itemize}
+
+\pause
+\begin{examplebox}{Key Insight}
+K-Means is iteratively refining the clustering:
+\begin{enumerate}
+\item Assignment makes WCSS smaller (each point goes to nearest centroid)
+\item Update makes WCSS smaller (centroid is optimal for its assigned points)
+\item Repeat until can't improve further (local optimum)
+\end{enumerate}
+\end{examplebox}
+\end{frame}
+
+\section{K-Means: Mathematical Rigor}
+
+\begin{frame}{Why K-Means Converges: Intuitive Proof}
+\textbf{Claim}: K-Means always converges
+
+\pause
+\textbf{Intuition}: Each step decreases (or keeps same) the objective function WCSS
+
+\pause
+\textbf{Proof sketch}:
+\begin{enumerate}
+\item<3-> \textbf{Assignment step}:
+  \begin{itemize}
+  \item Each point assigned to \alert{nearest} centroid
+  \item Cannot increase WCSS (optimal choice given fixed centroids)
+  \end{itemize}
+
+\item<4-> \textbf{Update step}:
+  \begin{itemize}
+  \item Centroid = mean of assigned points
+  \item Mean minimizes sum of squared distances (calculus!)
+  \item Cannot increase WCSS (optimal centroid given fixed assignments)
+  \end{itemize}
+
+\item<5-> \textbf{Conclusion}:
+  \begin{itemize}
+  \item WCSS decreases or stays same at each step
+  \item WCSS $\geq 0$ (bounded below)
+  \item Finite number of possible assignments ($K^n$)
+  \item Therefore, must converge! \checkmark
+  \end{itemize}
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{Why Mean Minimizes Sum of Squared Distances}
+\textbf{Claim}: For points $\{x_1, \ldots, x_m\}$, the mean $\bar{x} = \frac{1}{m}\sum_{i=1}^m x_i$ minimizes $\sum_{i=1}^m \|x_i - c\|^2$
+
+\pause
+\textbf{Proof}:
+Let $f(c) = \sum_{i=1}^m \|x_i - c\|^2$. Taking derivative and setting to zero:
+\begin{align*}
+\frac{\partial f}{\partial c} &= \sum_{i=1}^m 2(x_i - c)(-1) = 0 \\
+\sum_{i=1}^m (c - x_i) &= 0 \\
+mc &= \sum_{i=1}^m x_i \\
+c &= \frac{1}{m} \sum_{i=1}^m x_i = \bar{x} \quad \checkmark
+\end{align*}
+
+\pause
+\begin{keypointsbox}{Key Points}
+This is why we use \textbf{means} in K-Means - they're optimal!
+\end{keypointsbox}
+\end{frame}
+
+\begin{frame}{K-Means Objective: Equivalent Forms}
+\textbf{Form 1}: Within-Cluster Sum of Squares
+$$\min \sum_{k=1}^K \sum_{x_i \in C_k} \|x_i - \mu_k\|^2$$
+
+\pause
+\textbf{Form 2}: Pairwise distances within clusters
+$$\min \sum_{k=1}^K \frac{1}{|C_k|} \sum_{x_i \in C_k} \sum_{x_j \in C_k} \|x_i - x_j\|^2$$
+
+\pause
+\textbf{Equivalence}:
+\begin{align*}
+\sum_{x_i \in C_k} \sum_{x_j \in C_k} \|x_i - x_j\|^2 &= 2|C_k| \sum_{x_i \in C_k} \|x_i - \mu_k\|^2
+\end{align*}
+
+\pause
+\begin{definition}[Within-Cluster Variation]
+Both forms measure how "tight" clusters are - smaller is better!
+\end{definition}
+\end{frame}
+
+\begin{frame}{K-Means: Complexity Analysis}
+\textbf{Time Complexity per iteration}:
+\begin{itemize}
+\item \textbf{Assignment}: $O(nKd)$
+  \begin{itemize}
+  \item For each of $n$ points
+  \item Compute distance to $K$ centroids
+  \item Each distance is $O(d)$ (dimensionality)
+  \end{itemize}
+
+\item \textbf{Update}: $O(nd)$
+  \begin{itemize}
+  \item Sum up $n$ points across $d$ dimensions
+  \item Divide by cluster sizes
+  \end{itemize}
+\end{itemize}
+
+\pause
+\textbf{Total}: $O(nKdt)$ where $t$ = number of iterations
+
+\pause
+\textbf{Space Complexity}: $O((n+K)d)$
+\begin{itemize}
+\item Store $n$ data points and $K$ centroids
+\end{itemize}
+
+\pause
+\begin{keypointsbox}{Key Points}
+\textbf{Practical}: Usually converges in $< 10$ iterations → Very fast!
+\end{keypointsbox}
+\end{frame}
+
+\section{Choosing K: The Elbow Method}
+
+\begin{frame}{How Many Clusters?}
+\textbf{Problem}: K-Means requires specifying $K$ beforehand
+
+\pause
+\textbf{Question}: How do we choose $K$?
+
+\pause
+\textbf{Bad idea}: Just minimize WCSS
+\begin{itemize}
+\item $K=1$: WCSS is large (one big cluster)
+\item $K=n$: WCSS is zero (each point is its own cluster)
+\item WCSS always decreases as $K$ increases!
+\end{itemize}
+
+\pause
+\begin{alertbox}
+\textbf{Trade-off}: We want low WCSS but also not too many clusters!
+\end{alertbox}
+\end{frame}
+
+\begin{frame}{The Elbow Method: Intuition}
+\textbf{Idea}: Plot WCSS vs $K$ and look for an "elbow"
+
+\pause
+\textbf{Elbow} = point where:
+\begin{itemize}
+\item Adding more clusters doesn't help much
+\item Diminishing returns set in
+\item Curve flattens out
+\end{itemize}
+
+\pause
+\textbf{Analogy}: Hiring employees
+\begin{itemize}
+\item 1→2 employees: Huge productivity gain
+\item 2→3 employees: Still helpful
+\item 10→11 employees: Marginal benefit
+\item 100→101 employees: Almost no difference
+\end{itemize}
+
+\pause
+\begin{keypointsbox}{Key Points}
+\textbf{Elbow} = sweet spot where benefit of adding clusters drops sharply
+\end{keypointsbox}
+\end{frame}
+
+\begin{frame}{Elbow Method: Mathematical Formulation}
+\textbf{Algorithm}:
+\begin{enumerate}
+\item Run K-Means for $K = 1, 2, 3, \ldots, K_{\max}$
+\item For each $K$, compute WCSS$(K)$
+\item Plot WCSS$(K)$ vs $K$
+\item Find "elbow" = maximum curvature point
+\end{enumerate}
+
+\pause
+\textbf{Finding elbow programmatically}:
+\begin{itemize}
+\item Compute second derivative: $\frac{d^2(\text{WCSS})}{dK^2}$
+\item Elbow = maximum of second derivative
+\end{itemize}
+
+\pause
+Or use heuristic:
+$$\text{Elbow} = \arg\max_K \left[\text{WCSS}(K-1) - \text{WCSS}(K)\right]$$
+(biggest drop in WCSS)
+\end{frame}
+
+\begin{frame}{Elbow Method: Example}
+% Placeholder for elbow curve visualization
+\textbf{Example WCSS vs K}:
+
+\begin{center}
+\begin{tabular}{cc}
+$K$ & WCSS \\
+\hline
+1 & 1000 \\
+2 & 600 (drop: 400) \\
+3 & 400 (drop: 200) \\
+4 & 300 (drop: 100) ← \textbf{Elbow!} \\
+5 & 250 (drop: 50) \\
+6 & 220 (drop: 30) \\
+\end{tabular}
+\end{center}
+
+\pause
+\begin{itemize}
+\item Drops slow down after $K=4$
+\item Suggests $K=4$ is optimal
+\end{itemize}
+
+\pause
+\begin{alertbox}
+\textbf{Note}: Elbow method is a \alert{heuristic}, not a theorem!\\
+Use domain knowledge + elbow method together.
+\end{alertbox}
+\end{frame}
+
+\begin{frame}{Other Methods to Choose K}
+\textbf{Silhouette Score}:
+\begin{itemize}
+\item Measures how similar a point is to its own cluster vs other clusters
+\item Range: $[-1, 1]$, higher is better
+\item Choose $K$ with highest average silhouette score
+\end{itemize}
+
+\pause
+\textbf{Gap Statistic}:
+\begin{itemize}
+\item Compare WCSS to expected WCSS under null (random) data
+\item Choose $K$ where gap is largest
+\end{itemize}
+
+\pause
+\textbf{Domain Knowledge}:
+\begin{itemize}
+\item Sometimes you know $K$ from context
+\item Example: Customer segments (budget/mid/premium)
+\item Example: Image compression (fixed color palette)
+\end{itemize}
+\end{frame}
+
+\section{When K-Means Fails}
+
+\begin{frame}{K-Means Assumptions}
+K-Means works well when:
+\begin{enumerate}
+\item<1-> Clusters are \alert{spherical} (same in all directions)
+\item<2-> Clusters have \alert{similar sizes}
+\item<3-> Clusters have \alert{similar densities}
+\item<4-> Data is \alert{isotropic} (no strong directional patterns)
+\end{enumerate}
+
+\vspace{0.5cm}
+\onslide<5->{
+\begin{alertbox}
+\textbf{Reality}: Many real datasets violate these assumptions!\\
+Let's see what happens...
+\end{alertbox}
+}
+\end{frame}
+
+\begin{frame}{Failure Mode 1: Non-Spherical Clusters}
+\textbf{Problem}: K-Means assumes clusters are "ball-shaped"
+
+\pause
+\textbf{Example}: Two elongated, parallel clusters
+
+\pause
+\textbf{What happens}:
+\begin{itemize}
+\item K-Means uses Euclidean distance
+\item Creates \alert{spherical} decision boundaries
+\item Incorrectly splits elongated clusters
+\end{itemize}
+
+\pause
+\textbf{Solution}:
+\begin{itemize}
+\item Transform data first (e.g., PCA rotation)
+\item Use Gaussian Mixture Models (handles ellipsoids)
+\item Use spectral clustering
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Failure Mode 2: Non-Convex Shapes}
+\textbf{Problem}: K-Means creates convex decision boundaries
+
+\pause
+\textbf{Example}: Two interleaving crescents (moons)
+
+\pause
+\textbf{What happens}:
+\begin{itemize}
+\item Cannot separate non-convex shapes
+\item Centroids end up in wrong regions
+\item Boundaries cut through clusters
+\end{itemize}
+
+\pause
+\textbf{Solution}:
+\begin{itemize}
+\item DBSCAN (handles arbitrary shapes)
+\item Spectral clustering
+\item Kernel K-Means (kernel trick!)
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Failure Mode 3: Different Cluster Sizes}
+\textbf{Problem}: K-Means prefers equal-sized clusters
+
+\pause
+\textbf{Example}: One large cluster + one tiny cluster
+
+\pause
+\textbf{What happens}:
+\begin{itemize}
+\item Large cluster gets split into multiple parts
+\item Small cluster gets merged with nearby large cluster
+\item Objective function is minimized, but result is wrong!
+\end{itemize}
+
+\pause
+\textbf{Why?}
+\begin{itemize}
+\item Splitting large cluster reduces more WCSS
+\item Algorithm is greedy - doesn't know true structure
+\end{itemize}
+
+\pause
+\textbf{Solution}:
+\begin{itemize}
+\item Weighted K-Means
+\item DBSCAN (density-based)
+\item Hierarchical clustering
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Failure Mode 4: Different Densities}
+\textbf{Problem}: K-Means assumes similar density across clusters
+
+\pause
+\textbf{Example}: Dense cluster next to sparse cluster
+
+\pause
+\textbf{What happens}:
+\begin{itemize}
+\item Dense cluster may be over-segmented
+\item Sparse cluster absorbs nearby points from dense cluster
+\item Boundary is placed incorrectly
+\end{itemize}
+
+\pause
+\textbf{Solution}:
+\begin{itemize}
+\item DBSCAN (explicitly models density)
+\item HDBSCAN (hierarchical density-based)
+\item GMM with different covariances
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Failure Mode 5: Outliers}
+\textbf{Problem}: K-Means uses squared distances - very sensitive to outliers!
+
+\pause
+\textbf{Example}: Clean cluster + a few outliers
+
+\pause
+\textbf{What happens}:
+\begin{itemize}
+\item Outliers "pull" centroids away from true cluster centers
+\item Can create spurious clusters for noise points
+\item Squared distance amplifies effect ($100^2 = 10000$!)
+\end{itemize}
+
+\pause
+\textbf{Solutions}:
+\begin{itemize}
+\item Pre-process: Remove outliers first
+\item K-Medoids (uses medians, more robust)
+\item Trimmed K-Means (ignores worst $\alpha\%$ of points)
+\item DBSCAN (marks outliers as noise)
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Failure Mode 6: Bad Initialization}
+\textbf{Problem}: Random initialization can lead to poor local minima
+
+\pause
+\textbf{Example}: All initial centroids in same region
+
+\pause
+\textbf{What happens}:
+\begin{itemize}
+\item Converges to nearby local optimum
+\item Misses true clusters far away
+\item Different runs give different results!
+\end{itemize}
+
+\pause
+\textbf{Solution}: \alert{K-Means++} (discussed next!)
+\begin{itemize}
+\item Smart initialization - spread out initial centroids
+\item Much more likely to find good solution
+\item Now default in most libraries
+\end{itemize}
+\end{frame}
+
+\section{K-Means++}
+
+\begin{frame}{K-Means++: Smarter Initialization}
+\textbf{Problem with random init}: Can start with all centroids clustered together
+
+\pause
+\textbf{K-Means++ Idea}: Choose initial centroids that are \alert{far apart}
+
+\pause
+\textbf{Key Insight}:
+\begin{itemize}
+\item If true clusters are far apart
+\item Initial centroids should also be far apart
+\item More likely to have one centroid per true cluster
+\end{itemize}
+
+\pause
+\begin{keypointsbox}{Key Points}
+\textbf{How to choose "far apart" centroids?}\\
+Use \alert{weighted random sampling} - points far from existing centroids have higher probability!
+\end{keypointsbox}
+\end{frame}
+
+\begin{frame}{K-Means++ Algorithm}
+\textbf{Input}: Data points $\{x_1, \ldots, x_n\}$, number of clusters $K$
+
+\pause
+\textbf{Initialization}:
+\begin{enumerate}
+\item<2-> Choose first centroid $\mu_1$ uniformly at random from data
+
+\item<3-> For $k = 2, 3, \ldots, K$:
+  \begin{enumerate}
+  \item<4-> For each point $x_i$, compute:
+    $$D(x_i) = \min_{j < k} \|x_i - \mu_j\|^2$$
+    (squared distance to nearest already-chosen centroid)
+
+  \item<5-> Choose next centroid $\mu_k$ with probability:
+    $$P(x_i) = \frac{D(x_i)}{\sum_{j=1}^n D(x_j)}$$
+  \end{enumerate}
+\end{enumerate}
+
+\vspace{0.3cm}
+\onslide<6->{
+\textbf{Then}: Run standard K-Means with these initial centroids
+}
+\end{frame}
+
+\begin{frame}{K-Means++: Why It Works}
+\textbf{Intuition}:
+\begin{itemize}
+\item<1-> Points \alert{far} from existing centroids have high $D(x_i)^2$
+\item<2-> Points \alert{near} existing centroids have low $D(x_i)^2$
+\item<3-> Weighted sampling favors distant points
+\item<4-> Result: Centroids spread out across data
+\end{itemize}
+
+\vspace{0.5cm}
+\onslide<5->{
+\begin{examplebox}{Concrete Example}
+Suppose we've chosen $\mu_1 = (0, 0)$. Consider two points:
+\begin{itemize}
+\item $x_a = (1, 0)$: $D(x_a) = 1$ → $P(x_a) \propto 1$
+\item $x_b = (10, 0)$: $D(x_b) = 100$ → $P(x_b) \propto 100$
+\end{itemize}
+Point $x_b$ is 100× more likely to be chosen as $\mu_2$!
+\end{examplebox}
+}
+\end{frame}
+
+\begin{frame}{K-Means++: Theoretical Guarantee}
+\textbf{Theorem} (Arthur \& Vassilvitskii, 2007):
+
+K-Means++ initialization gives an expected approximation ratio of $O(\log K)$ to the optimal clustering.
+
+\pause
+\textbf{In English}:
+\begin{itemize}
+\item Let $\text{WCSS}_{\text{optimal}}$ = best possible WCSS
+\item Let $\text{WCSS}_{\text{KM++}}$ = WCSS from K-Means++ (after convergence)
+\item Then:
+$$\mathbb{E}[\text{WCSS}_{\text{KM++}}] \leq O(\log K) \cdot \text{WCSS}_{\text{optimal}}$$
+\end{itemize}
+
+\pause
+\textbf{Random initialization}: No such guarantee!
+
+\pause
+\begin{keypointsbox}{Key Points}
+K-Means++ is \alert{provably better} than random initialization\\
+This is why it's now the default in scikit-learn, etc.
+\end{keypointsbox}
+\end{frame}
+
+\begin{frame}{K-Means++ vs Standard K-Means}
+\begin{center}
+\begin{tabular}{|l|c|c|}
+\hline
+\textbf{Property} & \textbf{Random Init} & \textbf{K-Means++} \\
+\hline
+Convergence guarantee & Yes & Yes \\
+Quality guarantee & No & $O(\log K)$-approx \\
+Iterations needed & More & Fewer \\
+Consistency across runs & Poor & Better \\
+Initialization time & $O(1)$ & $O(nKd)$ \\
+Total time & $O(nKdt)$ & $O(nKd(t+K))$ \\
+\hline
+\end{tabular}
+\end{center}
+
+\pause
+\vspace{0.5cm}
+\textbf{Practical Advice}:
+\begin{itemize}
+\item \alert{Always use K-Means++} (default in scikit-learn)
+\item Initialization cost is negligible compared to iterations
+\item Better results with fewer iterations
+\end{itemize}
+\end{frame}
+
+\section{Hierarchical Clustering}
+
+\begin{frame}{Limitations of K-Means}
+\textbf{K-Means requires}:
+\begin{itemize}
+\item Specifying $K$ beforehand
+\item Running multiple times with different $K$ (elbow method)
+\item Assumes spherical clusters
+\end{itemize}
+
+\pause
+\textbf{Can we do better?}
+\begin{itemize}
+\item Get clustering at \alert{all levels} of granularity
+\item From $K=n$ (each point alone) to $K=1$ (everything together)
+\item Visualize as a tree (dendrogram)
+\item Cut tree at any height to get desired $K$
+\end{itemize}
+
+\pause
+\begin{keypointsbox}{Key Points}
+\textbf{Hierarchical Clustering}: Build a tree of nested clusters!
+\end{keypointsbox}
+\end{frame}
+
+\begin{frame}{Two Approaches to Hierarchical Clustering}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\textbf{1. Agglomerative (Bottom-Up)}
+\begin{itemize}
+\item Start: $n$ clusters (each point alone)
+\item Repeat: Merge two closest clusters
+\item End: 1 cluster (everything together)
+\item \alert{Most common approach}
+\end{itemize}
+
+\pause
+\textbf{Intuition}: Like building from atoms to molecules to structures
+\end{column}
+
+\pause
+\begin{column}{0.48\textwidth}
+\textbf{2. Divisive (Top-Down)}
+\begin{itemize}
+\item Start: 1 cluster (everything together)
+\item Repeat: Split cluster into two
+\item End: $n$ clusters (each point alone)
+\item Less common (computationally harder)
+\end{itemize}
+
+\pause
+\textbf{Intuition}: Like breaking a rock into smaller and smaller pieces
+\end{column}
+\end{columns}
+
+\pause
+\vspace{0.5cm}
+\begin{alertbox}
+\textbf{Today}: Focus on \alert{Agglomerative} (bottom-up)
+\end{alertbox}
+\end{frame}
+
+\begin{frame}{Agglomerative Clustering: Algorithm}
+\textbf{Input}: Data points $\{x_1, \ldots, x_n\}$
+
+\textbf{Algorithm}:
+\begin{enumerate}
+\item<1-> \textbf{Initialize}: Start with $n$ clusters, one per point
+  $$C_i = \{x_i\} \quad \text{for } i = 1, \ldots, n$$
+
+\item<2-> \textbf{Repeat} until only 1 cluster remains:
+  \begin{enumerate}
+  \item<3-> Find the two "closest" clusters $C_i$ and $C_j$
+  \item<4-> Merge them: $C_{\text{new}} = C_i \cup C_j$
+  \item<5-> Record merge in tree structure (dendrogram)
+  \end{enumerate}
+
+\item<6-> \textbf{Output}: Dendrogram (tree showing all merges)
+\end{enumerate}
+
+\vspace{0.3cm}
+\onslide<7->{
+\begin{keypointsbox}{Key Points}
+\textbf{Key Question}: How do we measure distance between \alert{clusters} (not just points)?
+\end{keypointsbox}
+}
+\end{frame}
+
+\begin{frame}{Linkage Criteria: Measuring Cluster Distance}
+\textbf{Given two clusters $C_i$ and $C_j$, what is their distance?}
+
+\pause
+\textbf{1. Single Linkage} (Minimum):
+$$d(C_i, C_j) = \min_{x \in C_i, y \in C_j} \|x - y\|$$
+\begin{itemize}
+\item Distance between closest points
+\item Can create "chains" (long, thin clusters)
+\end{itemize}
+
+\pause
+\textbf{2. Complete Linkage} (Maximum):
+$$d(C_i, C_j) = \max_{x \in C_i, y \in C_j} \|x - y\|$$
+\begin{itemize}
+\item Distance between farthest points
+\item Creates compact, spherical clusters
+\end{itemize}
+
+\pause
+\textbf{3. Average Linkage}:
+$$d(C_i, C_j) = \frac{1}{|C_i||C_j|} \sum_{x \in C_i} \sum_{y \in C_j} \|x - y\|$$
+\begin{itemize}
+\item Average distance between all pairs
+\item Balanced approach
+\end{itemize}
+\end{frame}
+
+\begin{frame}{More Linkage Criteria}
+\textbf{4. Centroid Linkage}:
+$$d(C_i, C_j) = \|\mu_i - \mu_j\|$$
+where $\mu_i = \frac{1}{|C_i|}\sum_{x \in C_i} x$
+\begin{itemize}
+\item Distance between centroids
+\item Can have inversions (not monotonic!)
+\end{itemize}
+
+\pause
+\textbf{5. Ward's Method} (Minimum Variance):
+$$d(C_i, C_j) = \frac{|C_i||C_j|}{|C_i| + |C_j|} \|\mu_i - \mu_j\|^2$$
+\begin{itemize}
+\item Minimizes increase in total within-cluster variance
+\item Tends to create equal-sized clusters
+\item \alert{Most popular choice} in practice
+\end{itemize}
+
+\pause
+\begin{keypointsbox}{Key Points}
+Different linkages → Different cluster shapes!\\
+Choose based on your data structure.
+\end{keypointsbox}
+\end{frame}
+
+\begin{frame}{Dendrogram: Visualizing the Hierarchy}
+\textbf{Dendrogram} = Tree diagram showing merge history
+
+\pause
+\textbf{Reading a dendrogram}:
+\begin{itemize}
+\item \textbf{Bottom}: Individual points
+\item \textbf{Height}: Distance at which clusters merge
+\item \textbf{Horizontal cut}: Determines number of clusters
+\end{itemize}
+
+\pause
+\textbf{Example}:
+\begin{itemize}
+\item Cut at height $h=2$: Might give 5 clusters
+\item Cut at height $h=5$: Might give 2 clusters
+\item Cut at height $h=10$: Everything in 1 cluster
+\end{itemize}
+
+\pause
+\begin{examplebox}{Flexibility}
+\textbf{Advantage}: Don't need to specify $K$ beforehand!\\
+Run once, then choose $K$ by cutting dendrogram at desired height.
+\end{examplebox}
+\end{frame}
+
+\begin{frame}{Hierarchical Clustering: Complexity}
+\textbf{Naive Algorithm}:
+\begin{itemize}
+\item Need to merge $n-1$ times
+\item At each step, compute distances between all cluster pairs
+\item Worst case: $O(n^3)$ time
+\end{itemize}
+
+\pause
+\textbf{Optimized (using priority queue)}:
+\begin{itemize}
+\item Time: $O(n^2 \log n)$
+\item Space: $O(n^2)$ (store pairwise distances)
+\end{itemize}
+
+\pause
+\textbf{Comparison to K-Means}:
+\begin{center}
+\begin{tabular}{|l|c|c|}
+\hline
+& \textbf{K-Means} & \textbf{Hierarchical} \\
+\hline
+Time & $O(nKdt)$ & $O(n^2 \log n)$ \\
+Space & $O((n+K)d)$ & $O(n^2)$ \\
+\hline
+\end{tabular}
+\end{center}
+
+\pause
+\begin{alertbox}
+Hierarchical is \alert{much slower} for large $n$ (thousands+)\\
+K-Means scales better to large datasets
+\end{alertbox}
+\end{frame}
+
+\begin{frame}{Hierarchical vs K-Means: When to Use Each?}
+\begin{center}
+\begin{tabular}{|l|c|c|}
+\hline
+\textbf{Property} & \textbf{K-Means} & \textbf{Hierarchical} \\
+\hline
+Specify $K$? & Yes & No \\
+Speed (large $n$) & Fast & Slow \\
+Deterministic? & No & Yes \\
+Cluster shape & Spherical & Flexible \\
+Dendrogram? & No & Yes \\
+Scalability & Excellent & Poor \\
+\hline
+\end{tabular}
+\end{center}
+
+\pause
+\vspace{0.5cm}
+\textbf{Use K-Means when}:
+\begin{itemize}
+\item Large dataset ($n > 10000$)
+\item Roughly spherical clusters
+\item Know $K$ (or can use elbow method)
+\end{itemize}
+
+\pause
+\textbf{Use Hierarchical when}:
+\begin{itemize}
+\item Small-medium dataset ($n < 5000$)
+\item Want full hierarchy (dendrogram)
+\item Don't know $K$ beforehand
+\item Need deterministic results
+\end{itemize}
+\end{frame}
+
+\section{DBSCAN}
+
+\begin{frame}{Limitations of K-Means and Hierarchical}
+\textbf{Both algorithms struggle with}:
+\begin{itemize}
+\item<1-> Non-convex shapes (crescents, rings)
+\item<2-> Outliers and noise
+\item<3-> Varying density clusters
+\end{itemize}
+
+\vspace{0.5cm}
+\onslide<4->{
+\begin{examplebox}{Motivating Example}
+Consider two clusters:
+\begin{itemize}
+\item Dense core of points (100 points in small area)
+\item Scattered points around core (10 points far away)
+\end{itemize}
+\textbf{Question}: Should scattered points be their own clusters or noise?
+\end{examplebox}
+}
+
+\vspace{0.3cm}
+\onslide<5->{
+\begin{keypointsbox}{Key Points}
+\textbf{Key Insight}: Clusters are \alert{dense regions} separated by \alert{sparse regions}!
+\end{keypointsbox}
+}
+\end{frame}
+
+\begin{frame}{DBSCAN: Density-Based Spatial Clustering}
+\textbf{Core Idea}:
+\begin{quote}
+A cluster is a region where points are densely packed together
+\end{quote}
+
+\pause
+\textbf{Advantages}:
+\begin{itemize}
+\item Can find \alert{arbitrarily shaped} clusters
+\item Robust to \alert{outliers} (marks them as noise)
+\item No need to specify number of clusters $K$
+\item Deterministic (same result every time)
+\end{itemize}
+
+\pause
+\textbf{Parameters}:
+\begin{itemize}
+\item $\varepsilon$ (epsilon): Radius of neighborhood
+\item MinPts: Minimum number of points in neighborhood to be "dense"
+\end{itemize}
+\end{frame}
+
+\begin{frame}{DBSCAN: Key Definitions}
+\textbf{1. $\varepsilon$-neighborhood} of point $p$:
+$$N_\varepsilon(p) = \{q : \|p - q\| \leq \varepsilon\}$$
+All points within radius $\varepsilon$ of $p$
+
+\pause
+\textbf{2. Core point}:
+\begin{itemize}
+\item Point $p$ is a \alert{core point} if $|N_\varepsilon(p)| \geq \text{MinPts}$
+\item Has at least MinPts neighbors (including itself)
+\item These form the "dense regions"
+\end{itemize}
+
+\pause
+\textbf{3. Border point}:
+\begin{itemize}
+\item Not a core point
+\item But is in $N_\varepsilon(p)$ of some core point $p$
+\item On the "edge" of a cluster
+\end{itemize}
+
+\pause
+\textbf{4. Noise point}:
+\begin{itemize}
+\item Neither core nor border
+\item Isolated outliers
+\end{itemize}
+\end{frame}
+
+\begin{frame}{DBSCAN: Visual Example of Point Types}
+\textbf{Setup}: $\varepsilon = 1$, MinPts = 4
+
+\begin{center}
+% Placeholder for visual
+\textbf{[Visual would show: points with circles of radius $\varepsilon$]}
+\end{center}
+
+\pause
+\textbf{Point Classification}:
+\begin{itemize}
+\item \textbf{Point A}: Has 5 neighbors → \alert{Core point}
+\item \textbf{Point B}: Has 6 neighbors → \alert{Core point}
+\item \textbf{Point C}: Has 2 neighbors, but in neighborhood of A → \alert{Border point}
+\item \textbf{Point D}: Has 1 neighbor, not near any core → \alert{Noise}
+\end{itemize}
+
+\pause
+\begin{keypointsbox}{Key Points}
+\textbf{Cluster} = All core points connected + their border points
+\end{keypointsbox}
+\end{frame}
+
+\begin{frame}{DBSCAN: Density Connectivity}
+\textbf{Direct density-reachable}:
+\begin{itemize}
+\item Point $q$ is directly density-reachable from $p$ if:
+  \begin{enumerate}
+  \item $p$ is a core point
+  \item $q \in N_\varepsilon(p)$
+  \end{enumerate}
+\end{itemize}
+
+\pause
+\textbf{Density-reachable}:
+\begin{itemize}
+\item $q$ is density-reachable from $p$ if there's a chain:
+$$p = p_1, p_2, \ldots, p_n = q$$
+where each $p_{i+1}$ is directly density-reachable from $p_i$
+\end{itemize}
+
+\pause
+\textbf{Density-connected}:
+\begin{itemize}
+\item Points $p$ and $q$ are density-connected if both are density-reachable from some point $o$
+\end{itemize}
+
+\pause
+\begin{definition}[DBSCAN Cluster]
+A \textbf{cluster} is the maximal set of density-connected points.
+\end{definition}
+\end{frame}
+
+\begin{frame}{DBSCAN Algorithm}
+\textbf{Input}: Data points, $\varepsilon$, MinPts
+
+\textbf{Algorithm}:
+\begin{enumerate}
+\item<1-> Mark all points as \texttt{UNVISITED}
+
+\item<2-> \textbf{For each} unvisited point $p$:
+  \begin{enumerate}
+  \item<3-> Mark $p$ as \texttt{VISITED}
+  \item<4-> Find $N_\varepsilon(p)$ (all neighbors within $\varepsilon$)
+  \item<5-> \textbf{If} $|N_\varepsilon(p)| < \text{MinPts}$:
+    \begin{itemize}
+    \item Mark $p$ as \texttt{NOISE} (may change later!)
+    \end{itemize}
+  \item<6-> \textbf{Else} ($p$ is core point):
+    \begin{itemize}
+    \item Create new cluster $C$
+    \item Add $p$ to $C$
+    \item Expand cluster: recursively add all density-reachable points
+    \end{itemize}
+  \end{enumerate}
+
+\item<7-> \textbf{Output}: Set of clusters + noise points
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{DBSCAN: Expand Cluster Procedure}
+\textbf{ExpandCluster}$(p, N_\varepsilon(p), C)$:
+
+\begin{enumerate}
+\item Add $p$ to cluster $C$
+
+\item \textbf{For each} point $q \in N_\varepsilon(p)$:
+  \begin{enumerate}
+  \item \textbf{If} $q$ is \texttt{UNVISITED}:
+    \begin{itemize}
+    \item Mark $q$ as \texttt{VISITED}
+    \item Find $N_\varepsilon(q)$
+    \item \textbf{If} $|N_\varepsilon(q)| \geq \text{MinPts}$:
+      \begin{itemize}
+      \item $q$ is a core point!
+      \item Add $N_\varepsilon(q)$ to queue (will expand recursively)
+      \end{itemize}
+    \end{itemize}
+
+  \item \textbf{If} $q$ not yet in any cluster:
+    \begin{itemize}
+    \item Add $q$ to $C$
+    \end{itemize}
+  \end{enumerate}
+\end{enumerate}
+
+\pause
+\begin{keypointsbox}{Key Points}
+\textbf{Result}: All density-reachable points from $p$ are in cluster $C$
+\end{keypointsbox}
+\end{frame}
+
+\begin{frame}{DBSCAN: Worked Example (1/4)}
+\textbf{Setup}: $\varepsilon = 1.5$, MinPts = 3
+
+\textbf{Data}: 10 points in 2D
+\begin{center}
+\small
+\begin{tabular}{cc|cc}
+\textbf{Point} & \textbf{Coords} & \textbf{Point} & \textbf{Coords} \\
+\hline
+A & $(1, 1)$ & F & $(2, 2)$ \\
+B & $(1, 2)$ & G & $(10, 10)$ \\
+C & $(2, 1)$ & H & $(10, 11)$ \\
+D & $(1.5, 1.5)$ & I & $(11, 10)$ \\
+E & $(2, 3)$ & J & $(5, 5)$ \\
+\end{tabular}
+\end{center}
+
+\textbf{Visualize}: Three regions - dense cluster left, dense cluster right, one isolated point
+\end{frame}
+
+\begin{frame}{DBSCAN: Worked Example (2/4) - Finding Core Points}
+\textbf{Check each point's neighborhood}:
+
+\begin{itemize}
+\item \textbf{Point A} $(1,1)$: Neighbors = $\{$A, B, C, D$\}$ (4 points) → \alert{Core}
+\item \textbf{Point B} $(1,2)$: Neighbors = $\{$A, B, D, E, F$\}$ (5 points) → \alert{Core}
+\item \textbf{Point C} $(2,1)$: Neighbors = $\{$A, C, D, F$\}$ (4 points) → \alert{Core}
+\item \textbf{Point D} $(1.5,1.5)$: Neighbors = $\{$A, B, C, D, F$\}$ (5 points) → \alert{Core}
+\item \textbf{Point E} $(2,3)$: Neighbors = $\{$B, E, F$\}$ (3 points) → \alert{Core}
+\item \textbf{Point F} $(2,2)$: Neighbors = $\{$B, C, D, E, F$\}$ (5 points) → \alert{Core}
+\item \textbf{Point G} $(10,10)$: Neighbors = $\{$G, H, I$\}$ (3 points) → \alert{Core}
+\item \textbf{Point H} $(10,11)$: Neighbors = $\{$G, H, I$\}$ (3 points) → \alert{Core}
+\item \textbf{Point I} $(11,10)$: Neighbors = $\{$G, H, I$\}$ (3 points) → \alert{Core}
+\item \textbf{Point J} $(5,5)$: Neighbors = $\{$J$\}$ (1 point) → \alert{Noise}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{DBSCAN: Worked Example (3/4) - Forming Clusters}
+\textbf{Start with point A}:
+\begin{itemize}
+\item A is core → Create \textbf{Cluster 1}
+\item Expand: A can reach B, C, D (all core)
+\item B can reach E, F (both core)
+\item Continue expanding: All of $\{$A, B, C, D, E, F$\}$ are density-connected
+\item \textbf{Cluster 1} = $\{$A, B, C, D, E, F$\}$
+\end{itemize}
+
+\pause
+\textbf{Continue with unvisited point G}:
+\begin{itemize}
+\item G is core → Create \textbf{Cluster 2}
+\item Expand: G can reach H, I (both core)
+\item All of $\{$G, H, I$\}$ are density-connected
+\item \textbf{Cluster 2} = $\{$G, H, I$\}$
+\end{itemize}
+
+\pause
+\textbf{Point J}:
+\begin{itemize}
+\item J is not core, not in any neighborhood
+\item \textbf{Noise} = $\{$J$\}$
+\end{itemize}
+\end{frame}
+
+\begin{frame}{DBSCAN: Worked Example (4/4) - Final Result}
+\textbf{Final Clustering}:
+\begin{itemize}
+\item \textbf{Cluster 1}: $\{$A, B, C, D, E, F$\}$ (6 points)
+\item \textbf{Cluster 2}: $\{$G, H, I$\}$ (3 points)
+\item \textbf{Noise}: $\{$J$\}$ (1 point)
+\end{itemize}
+
+\pause
+\begin{keypointsbox}{Key Points}
+\textbf{Key Observations}:
+\begin{itemize}
+\item Found 2 clusters automatically (no $K$ specified!)
+\item Identified outlier J as noise
+\item Clusters can have different sizes (6 vs 3)
+\item Clusters based on density, not distance to centroid
+\end{itemize}
+\end{keypointsbox}
+
+\pause
+\begin{alertbox}
+\textbf{Compared to K-Means}: Would force J into one of the clusters!
+\end{alertbox}
+\end{frame}
+
+\begin{frame}{DBSCAN: Advantages}
+\begin{enumerate}
+\item \textbf{Arbitrary shapes}: Can find non-convex, elongated clusters
+\item \textbf{No $K$ needed}: Number of clusters determined automatically
+\item \textbf{Noise detection}: Explicitly identifies outliers
+\item \textbf{Deterministic}: Same result every run
+\item \textbf{Only 2 parameters}: $\varepsilon$ and MinPts (vs $K$ for K-Means)
+\end{enumerate}
+
+\pause
+\textbf{Example Applications}:
+\begin{itemize}
+\item Geographic data (cities, disease outbreaks)
+\item Anomaly detection (fraud, network intrusion)
+\item Image segmentation (arbitrary region shapes)
+\item Point cloud processing (3D scanning)
+\end{itemize}
+\end{frame}
+
+\begin{frame}{DBSCAN: Disadvantages}
+\begin{enumerate}
+\item \textbf{Parameter sensitivity}: Results depend heavily on $\varepsilon$ and MinPts
+\item \textbf{Varying density}: Struggles when clusters have different densities
+\item \textbf{High dimensions}: "Curse of dimensionality" - distances become meaningless
+\item \textbf{Complexity}: $O(n^2)$ naive, $O(n \log n)$ with spatial index
+\end{enumerate}
+
+\pause
+\textbf{Example of varying density problem}:
+\begin{itemize}
+\item Dense cluster: 100 points in radius 1
+\item Sparse cluster: 10 points in radius 5
+\item No single $\varepsilon$ works well for both!
+\end{itemize}
+
+\pause
+\textbf{Solutions}:
+\begin{itemize}
+\item HDBSCAN (hierarchical DBSCAN) - handles varying densities
+\item OPTICS - creates reachability plot for all $\varepsilon$ values
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Choosing DBSCAN Parameters}
+\textbf{How to choose $\varepsilon$?}
+
+\textbf{K-distance graph method}:
+\begin{enumerate}
+\item For each point, compute distance to $k$-th nearest neighbor (use $k = \text{MinPts}$)
+\item Sort these distances
+\item Plot sorted $k$-distances
+\item Look for "elbow" - sharp increase indicates noise threshold
+\item Set $\varepsilon$ = distance at elbow
+\end{enumerate}
+
+\pause
+\textbf{How to choose MinPts?}
+\begin{itemize}
+\item Rule of thumb: MinPts $\geq d + 1$ where $d$ is dimensionality
+\item For 2D data: MinPts = 3 or 4
+\item Larger MinPts: More robust to noise, but may merge clusters
+\item Smaller MinPts: More sensitive, may create many tiny clusters
+\end{itemize}
+
+\pause
+\textbf{Practical advice}: Try MinPts = 4, then tune $\varepsilon$ using k-distance graph
+\end{frame}
+
+\section{Comparing Clustering Methods}
+
+\begin{frame}{Clustering Algorithms: Summary Table}
+\begin{center}
+\small
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+\textbf{Algorithm} & \textbf{Shape} & \textbf{$K$?} & \textbf{Outliers} & \textbf{Complexity} \\
+\hline
+K-Means & Spherical & Yes & Sensitive & $O(nKdt)$ \\
+K-Means++ & Spherical & Yes & Sensitive & $O(nKd(t+K))$ \\
+Hierarchical & Flexible & No & Sensitive & $O(n^2 \log n)$ \\
+DBSCAN & Arbitrary & No & Robust & $O(n \log n)$* \\
+\hline
+\multicolumn{5}{l}{\tiny *With spatial indexing; $O(n^2)$ naive} \\
+\end{tabular}
+\end{center}
+
+\vspace{0.5cm}
+\pause
+\textbf{Additional Properties}:
+\begin{center}
+\small
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Algorithm} & \textbf{Deterministic} & \textbf{Scalability} & \textbf{High-D OK?} \\
+\hline
+K-Means & No & Excellent & Yes \\
+K-Means++ & No & Excellent & Yes \\
+Hierarchical & Yes & Poor & Moderate \\
+DBSCAN & Yes & Good & No \\
+\hline
+\end{tabular}
+\end{center}
+\end{frame}
+
+\begin{frame}{Decision Tree: Which Algorithm to Use?}
+\begin{center}
+\textbf{Choosing a Clustering Algorithm}
+\end{center}
+
+\begin{enumerate}
+\item<1-> \textbf{Do you know $K$?}
+  \begin{itemize}
+  \item Yes → Consider K-Means++
+  \item No → Consider Hierarchical or DBSCAN
+  \end{itemize}
+
+\item<2-> \textbf{Are clusters roughly spherical?}
+  \begin{itemize}
+  \item Yes → K-Means++ is great
+  \item No → DBSCAN or Hierarchical
+  \end{itemize}
+
+\item<3-> \textbf{Are there outliers?}
+  \begin{itemize}
+  \item Yes → DBSCAN (marks as noise)
+  \item No → Any method works
+  \end{itemize}
+
+\item<4-> \textbf{How large is your dataset?}
+  \begin{itemize}
+  \item Large ($n > 10000$) → K-Means++ (fastest)
+  \item Medium ($1000 < n < 10000$) → DBSCAN or K-Means++
+  \item Small ($n < 1000$) → Hierarchical (gives full tree)
+  \end{itemize}
+
+\item<5-> \textbf{Need hierarchy of clusters?}
+  \begin{itemize}
+  \item Yes → Hierarchical only!
+  \end{itemize}
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{Practical Recommendations}
+\textbf{Default Choice}: \alert{K-Means++}
+\begin{itemize}
+\item Fast, simple, works well in practice
+\item Use elbow method to find $K$
+\item Run multiple times (non-deterministic)
+\end{itemize}
+
+\pause
+\textbf{When to use alternatives}:
+\begin{itemize}
+\item \textbf{Arbitrary shapes + outliers} → DBSCAN
+\item \textbf{Need full hierarchy} → Hierarchical
+\item \textbf{Probabilistic model} → Gaussian Mixture Models
+\item \textbf{Varying densities} → HDBSCAN
+\item \textbf{Very large scale} → Mini-Batch K-Means
+\end{itemize}
+
+\pause
+\textbf{General Advice}:
+\begin{enumerate}
+\item Try K-Means++ first (baseline)
+\item Visualize results (PCA/t-SNE for high-D)
+\item If poor results, understand why
+\item Switch algorithm based on failure mode
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{Evaluating Clustering Quality}
+\textbf{Problem}: Unlike supervised learning, we don't have "true" labels!
+
+\pause
+\textbf{Internal Metrics} (no ground truth needed):
+\begin{itemize}
+\item \textbf{Silhouette Score}: Measures compactness vs separation
+  $$s(i) = \frac{b(i) - a(i)}{\max\{a(i), b(i)\}}$$
+  Range: $[-1, 1]$, higher is better
+
+\item \textbf{Davies-Bouldin Index}: Ratio of within-cluster to between-cluster distances
+  Lower is better
+
+\item \textbf{Calinski-Harabasz Index}: Ratio of between-cluster to within-cluster variance
+  Higher is better
+\end{itemize}
+
+\pause
+\textbf{External Metrics} (if ground truth available):
+\begin{itemize}
+\item \textbf{Adjusted Rand Index (ARI)}: Similarity to true labeling
+\item \textbf{Normalized Mutual Information (NMI)}: Information shared with true labels
+\end{itemize}
+\end{frame}
+
+\section{Practical Considerations}
+
+\begin{frame}{Feature Scaling for Clustering}
+\textbf{Problem}: Features with different scales dominate distance calculations!
+
+\pause
+\textbf{Example}:
+\begin{itemize}
+\item Age: 20-80 years
+\item Income: \$20,000 - \$200,000
+\item Distance dominated by income!
+\end{itemize}
+
+\pause
+\textbf{Solution}: Always normalize features before clustering!
+
+\textbf{StandardScaler} (Z-score normalization):
+$$x_{\text{scaled}} = \frac{x - \mu}{\sigma}$$
+Transforms to mean = 0, std = 1
+
+\pause
+\textbf{MinMaxScaler}:
+$$x_{\text{scaled}} = \frac{x - x_{\min}}{x_{\max} - x_{\min}}$$
+Transforms to range $[0, 1]$
+
+\pause
+\begin{alertbox}
+\textbf{Always scale before K-Means, Hierarchical, or DBSCAN!}
+\end{alertbox}
+\end{frame}
+
+\begin{frame}{High-Dimensional Data}
+\textbf{Curse of Dimensionality}:
+\begin{itemize}
+\item In high dimensions, all distances become similar!
+\item Nearest and farthest neighbors have similar distances
+\item Clustering becomes meaningless
+\end{itemize}
+
+\pause
+\textbf{Solutions}:
+\begin{enumerate}
+\item \textbf{Dimensionality Reduction first}:
+  \begin{itemize}
+  \item PCA: Project to lower dimensions
+  \item t-SNE: Nonlinear reduction (for visualization)
+  \item Autoencoders: Neural network-based
+  \end{itemize}
+
+\item \textbf{Feature Selection}:
+  \begin{itemize}
+  \item Remove irrelevant features
+  \item Use domain knowledge
+  \end{itemize}
+
+\item \textbf{Subspace Clustering}:
+  \begin{itemize}
+  \item Find clusters in subspaces
+  \item Different clusters may live in different dimensions
+  \end{itemize}
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{Handling Categorical Data}
+\textbf{Problem}: K-Means uses Euclidean distance (assumes numerical features)
+
+\pause
+\textbf{Solutions}:
+\begin{enumerate}
+\item \textbf{One-Hot Encoding}:
+  \begin{itemize}
+  \item Color = $\{$Red, Blue, Green$\}$ → 3 binary features
+  \item Then cluster normally
+  \item Can use Hamming distance instead of Euclidean
+  \end{itemize}
+
+\pause
+\item \textbf{K-Modes}:
+  \begin{itemize}
+  \item Variant of K-Means for categorical data
+  \item Uses mode instead of mean
+  \item Uses Hamming distance
+  \end{itemize}
+
+\pause
+\item \textbf{K-Prototypes}:
+  \begin{itemize}
+  \item Handles mixed numerical + categorical
+  \item Combines K-Means and K-Modes
+  \end{itemize}
+
+\pause
+\item \textbf{Gower Distance}:
+  \begin{itemize}
+  \item Generalized distance for mixed data types
+  \item Can use with hierarchical clustering
+  \end{itemize}
+\end{enumerate}
+\end{frame}
+
+\section{Summary}
+
+\begin{frame}{What We Learned Today}
+\textbf{1. Fundamentals}:
+\begin{itemize}
+\item Unsupervised learning finds patterns without labels
+\item Clustering groups similar objects together
+\item Need to define similarity/distance measure
+\end{itemize}
+
+\pause
+\textbf{2. K-Means}:
+\begin{itemize}
+\item Minimizes within-cluster sum of squares
+\item Two-step: Assignment → Update → Repeat
+\item K-Means++ initialization helps a lot!
+\item Use elbow method to choose $K$
+\end{itemize}
+
+\pause
+\textbf{3. Hierarchical}:
+\begin{itemize}
+\item Builds tree of clusters (dendrogram)
+\item Agglomerative (bottom-up) most common
+\item Different linkages for different cluster shapes
+\item No need to specify $K$ beforehand
+\end{itemize}
+\end{frame}
+
+\begin{frame}{What We Learned Today (cont.)}
+\textbf{4. DBSCAN}:
+\begin{itemize}
+\item Density-based: finds arbitrarily shaped clusters
+\item Identifies outliers as noise
+\item Parameters: $\varepsilon$ (radius), MinPts (threshold)
+\item Use k-distance graph to choose $\varepsilon$
+\end{itemize}
+
+\pause
+\textbf{5. Practical Tips}:
+\begin{itemize}
+\item Always scale/normalize features first!
+\item Visualize results (PCA for high-D)
+\item Try K-Means++ as baseline
+\item Choose algorithm based on data properties
+\item Use multiple metrics to evaluate
+\end{itemize}
+
+\pause
+\begin{keypointsbox}{Key Points}
+\textbf{Key Takeaway}: Different algorithms for different data!\\
+Understand assumptions and failure modes.
+\end{keypointsbox}
+\end{frame}
+
+\begin{frame}{Next Steps}
+\textbf{Practice}:
+\begin{itemize}
+\item Implement K-Means from scratch (HW/Lab)
+\item Try scikit-learn: \texttt{KMeans}, \texttt{DBSCAN}, \texttt{AgglomerativeClustering}
+\item Experiment with real datasets (Iris, customer data, images)
+\end{itemize}
+
+\pause
+\textbf{Further Topics}:
+\begin{itemize}
+\item Gaussian Mixture Models (probabilistic clustering)
+\item Spectral clustering (graph-based)
+\item Topic modeling (Latent Dirichlet Allocation)
+\item Deep clustering (autoencoders + K-Means)
+\end{itemize}
+
+\pause
+\textbf{Code and Resources}:
+\begin{center}
+\href{https://colab.research.google.com/drive/1HMPn0mpMAe4XFe5Zvh4oExgi5evkgjTi}{Google Colab Notebook}
+\end{center}
+\end{frame}
+
+\begin{frame}
+\begin{center}
+\Huge Questions?
+\end{center}
+\end{frame}
+
+\end{document}
