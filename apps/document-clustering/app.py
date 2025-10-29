@@ -183,10 +183,14 @@ def show_cluster_members(doc_names, doc_texts, labels, n_clusters):
 
             for name, text in cluster_docs:
                 short_name = name.replace('.txt', '').replace('_', ' ')
-                # Show first 100 chars
-                preview = text[:100].replace('\n', ' ') + '...'
+                # Show preview and full text in tabs
+                preview = text[:150].replace('\n', ' ') + '...'
                 with st.expander(f"📄 {short_name}"):
-                    st.text(preview)
+                    tab_preview, tab_full = st.tabs(["Preview", "Full Text"])
+                    with tab_preview:
+                        st.text(preview)
+                    with tab_full:
+                        st.text_area("", value=text, height=300, disabled=True, label_visibility="collapsed")
 
 def compute_elbow_curve(features, max_k=10):
     """
