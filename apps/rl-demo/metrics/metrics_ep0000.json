@@ -1,0 +1,11 @@
+{
+  "episode": 0,
+  "mean_reward": 8.8,
+  "std_reward": 0.7483314773547883,
+  "training_rewards": [
+    24.0
+  ],
+  "training_lengths": [
+    24
+  ]
+}

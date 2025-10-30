@@ -1,0 +1,38 @@
+[
+  {
+    "episode": 0,
+    "reward": 10.0,
+    "steps": 10,
+    "video_path": "videos/agent_ep0000.gif"
+  },
+  {
+    "episode": 50,
+    "reward": 10.0,
+    "steps": 10,
+    "video_path": "videos/agent_ep0050.gif"
+  },
+  {
+    "episode": 100,
+    "reward": 18.0,
+    "steps": 18,
+    "video_path": "videos/agent_ep0100.gif"
+  },
+  {
+    "episode": 200,
+    "reward": 153.0,
+    "steps": 153,
+    "video_path": "videos/agent_ep0200.gif"
+  },
+  {
+    "episode": 300,
+    "reward": 125.0,
+    "steps": 125,
+    "video_path": "videos/agent_ep0300.gif"
+  },
+  {
+    "episode": 400,
+    "reward": 255.0,
+    "steps": 255,
+    "video_path": "videos/agent_ep0400.gif"
+  }
+]
