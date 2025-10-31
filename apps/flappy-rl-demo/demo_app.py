@@ -14,8 +14,15 @@ from flappy_env import FlappyBirdEnv
 
 st.set_page_config(page_title="Flappy Bird RL Demo", layout="wide", page_icon="🐦")
 
-# Directories - use new training directory if available
-CHECKPOINT_DIR = Path("checkpoints_better") if Path("checkpoints_better").exists() else Path("checkpoints")
+# Directories - check in order of preference
+def get_checkpoint_dir():
+    for name in ["checkpoints_better", "checkpoints_demo", "checkpoints"]:
+        p = Path(name)
+        if p.exists() and list(p.glob("checkpoint_ep*.pt")):
+            return p
+    return Path("checkpoints_demo")  # Default to demo
+
+CHECKPOINT_DIR = get_checkpoint_dir()
 VIDEO_DIR = Path("videos_better") if Path("videos_better").exists() else Path("videos")
 METRICS_DIR = Path("metrics_better") if Path("metrics_better").exists() else Path("metrics")
 
