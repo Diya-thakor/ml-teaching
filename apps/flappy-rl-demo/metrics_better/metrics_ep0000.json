@@ -1,0 +1,14 @@
+{
+  "training_rewards": [
+    -97.5
+  ],
+  "training_lengths": [
+    26
+  ],
+  "training_scores": [
+    0
+  ],
+  "mean_reward": -97.5,
+  "mean_score": 0.0,
+  "std_reward": 0.0
+}
