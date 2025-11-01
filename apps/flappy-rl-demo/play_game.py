@@ -310,13 +310,14 @@ def select_mode():
         if choice == "1":
             return "human", None, None
         elif choice == "2":
-            # Select AI checkpoint - check both old and new directories
-            checkpoint_dir = Path("checkpoints_better")
-            if not checkpoint_dir.exists():
-                checkpoint_dir = Path("checkpoints")
-
-            if not checkpoint_dir.exists():
+            # Select AI checkpoint - check directories in order of preference
+            for dir_name in ["checkpoints_better", "checkpoints_demo", "checkpoints"]:
+                checkpoint_dir = Path(dir_name)
+                if checkpoint_dir.exists() and list(checkpoint_dir.glob("checkpoint_ep*.pt")):
+                    break
+            else:
                 print("ERROR: No checkpoints found! Train an agent first.")
+                print("To get started quickly, you can use the pre-trained demo checkpoints.")
                 sys.exit(1)
 
             checkpoints = sorted(checkpoint_dir.glob("checkpoint_ep*.pt"))
